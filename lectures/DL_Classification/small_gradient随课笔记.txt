@@ -1,0 +1,36 @@
+第一部分：
+
+1. 训练停止可能不一定是因为local minima，可能是因为saddle point。
+我们有办法进行判断（通过一定的数学）
+
+2. 通过泰勒级数我们可以对loss function加以近似
+
+3. 当我们处在critical point时，近似公式的第二项将消失，通过第三项（含有Hessian的项），我们可以判断critical point的归属（local min、local max或者saddle point）
+其中，线性代数的知识告诉我们，根据判断项的结构，这种矩阵是一种特殊的矩阵，我们可以通过其特征值来判断我们想判断的项的正负
+
+4. 举例说明使用eigenvalue来判断Hessian
+
+5. 如果训练停止的位置位于saddle point，那么可以利用H获取update的方向
+即：我们现在除了根据gradient来判断loss的减小方向，还可以通过使用Hessian来判断
+（实际训练中不怎么使用这种方法逃离saddle point）
+
+6. local minima在更高维的空间可能可以作为saddle point处理
+
+7. 我们在实际训练中（经验上）local minima并不常见
+
+
+第二部分：
+
+8. 每次update参数只会使用一个batch的资料。如果我们遍历完了所有的batch，这整个过程
+称作epoch。shuffle选项指：每个训练的epoch里我们的batch是否保持同样的分法。
+
+9. batchsize的影响，small batch VS large batch：
+举例：如full batch和batch size = 1，训练显示小batch会比较noisy，大batch的update时间比较长（实际中由于我们训练时可以使用并行运算，大batch不一定训练时间长）。
+
+10. 但实际上，小的batch在训练和测试上的表现往往比大batch要好
+
+11. flat minima一般认为优于sharp minima，很多人认为大batch容易让我们走到sharp minima内，小batch
+容易走向flat minima内（有待研究，不是公认）
+
+
+

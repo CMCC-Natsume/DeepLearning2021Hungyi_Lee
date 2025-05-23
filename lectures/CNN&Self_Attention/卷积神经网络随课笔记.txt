@@ -1,0 +1,16 @@
+1. 卷积神经网络：影像分类。向量dimension的长度决定了辨识的种类
+2. 图片分三个channel，每个pixel由rgb三个频道构成
+3. 我们将图片的三个频道拉直，可以放进network里。我们通过图片中的pattern（如鸟嘴，鸟爪来判断物种）来做出判断，所以我们可能没有必要将整张图片作为输入。这也是设计该领域神经网络的灵感之一
+4. receptive field：每个neuron管辖的范围。多个neuron可以守备重合的receptive field 
+5. stride：相邻receptive field所隔的大小。超参数，需要自己调整。如果receptive field超出了图片的范围，我们可能需要做padding。
+6. 同样的模式在不同的图片中的位置可能不同，所以我们需要做parameter sharing。可能有的疑问：同样的parameter会不会导致相同的输出。不会，因为输入的图片是不同的
+7. 现在，我们原先的fully connected layer有了receptive field和parameter sharing。我们得到了一个弹性更小但是在图像领域有优势的convolutional layer
+
+8. 一种新的解释（对相同的话题），我们设定filter来检测channel中的pattern
+9. filter如果较小，我们是不是没有办法检测较大的pattern呢？并不，因为每层filter都集中了pattern，越深时我们检测的范围其实越大。
+10. 把filter扫过一整张图片的整个过程就叫convolution
+11. 小技巧pooling：实际上就是subsampling，这个过程本身没有参数，所以它实际上更像激活函数而非层。max pooling：每个filter中产生的数字集中，分组取最大作代表。常见的做法是convolutional layer和pooling交替使用。不过在辨识微小物品时pooling会有伤害。
+Pooling的最主要目的是减小运算量。
+12. 经过convolution和pooling后，我们一般会做flatten，然后将结果放入一个fully connected network里，最终可能过一个softmax得到结果。
+13. CNN现在可能也可以使用在语音辨识和文字处理上，但是这里参数共享和图片辨识里的也许不一样，直接套用也许是不work的。
+14. CNN现在不太能处理图像的scaling和rotation（拉长成向量差距较大），所以我们往往还需要掌握data augmentation。有一个架构可以处理这个问题，叫special transformer layer
