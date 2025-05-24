@@ -6,6 +6,8 @@ import graphMaking
 seed = 42069
 torch.manual_seed(seed)
 
+print(f"{torch.cuda.is_available()}\n\n")
+
 # 检查是否有GPU可用
 # （应用至损失函数、网络模型、数据上）
 if torch.cuda.is_available():
