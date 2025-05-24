@@ -11,7 +11,7 @@ ROUND = 0
 # 检查数据集
 if __name__ == "__main__":
     print("Loading data...")
-    data_root = 'DL2021/Homework/resources/HW2/timit_11/timit_11/' # 此处为项目根目录（即DL2021而非project2）
+    data_root = 'Homework/resources/HW2/timit_11/timit_11/' # 此处为项目根目录（即DL2021而非project2）
     train_dataset = numpy.load(data_root + "train_11.npy")
     test_dataset = numpy.load(data_root + "test_11.npy")
     train_label_dataset = numpy.load(data_root + "train_label_11.npy")
@@ -31,16 +31,19 @@ if __name__ == "__main__":
 """
 class MyDataset(Dataset):
     def __init__(self, path: str, mode: str, inputLabel: str = None):
-        self.mode = mode
         super().__init__()
+        self.mode = mode
         # 判断是否为测试集:
         if mode == 'test':
-            self.data = torch.FloatTensor(numpy.load(path))
+            self.data = numpy.load(path)
             self.targets = None
         else:
             # 非test数据集
-            target = numpy.load(inputLabel)  # 本两行根据数据特点进行切片
-            data = numpy.load(path)
+            target = numpy.load(inputLabel, mmap_mode='r')  # 本两行根据数据特点进行切片
+            data = numpy.load(path, mmap_mode='r')
+            # target = numpy.load(inputLabel)  # 不使用 mmap_mode则会将整个数据集加载到内存中，大概率会导致内存不足
+            # data = numpy.load(path)
+
             # 划分训练集和验证集:
             train_index = []
             dev_index = []
@@ -77,7 +80,8 @@ class MyDataset(Dataset):
 
 
 def create_dataloader(dataset: Dataset, batch_size: int, num_workers: int):
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, drop_last=False)
+    dataloader = \
+    DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, drop_last=False)
     return dataloader
 
 

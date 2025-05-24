@@ -3,7 +3,7 @@ from torch import nn, optim
 from torch.utils.data import Dataset, DataLoader
 
 MAX_EPOCH = 1000
-LEARN_RATE = 0.001
+LEARNING_RATE = 0.001
 MOMENTUM = 0.9
 
 if torch.cuda.is_available():
@@ -30,7 +30,7 @@ class MyModel(nn.Module):
             nn.ReLU(),
             nn.Linear(100, 1)
         )
-        self.criterion = nn.MSELoss(reduction='mean')
+        self.criterion = nn.CrossEntropyLoss(reduction='mean')
 
 
     def forward(self, input_data):
@@ -53,7 +53,7 @@ def model_training(train_data: DataLoader, dev_data: DataLoader, model: MyModel)
     dev_loss = []
     min_loss = 100
     epoch = 1
-    my_optimizer = optim.SGD(model.parameters(), lr=LEARN_RATE, momentum=MOMENTUM)
+    my_optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM)
     while epoch < MAX_EPOCH:
         model.train()
         for data, label in train_data:
