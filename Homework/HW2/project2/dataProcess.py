@@ -1,47 +1,47 @@
 from torch.utils.data import Dataset, DataLoader
 import numpy
-import csv
+# import csv
 import torch
 
 ROUND = 0
 
 """
 本项目的数据集构成:
-
 """
-
-
-def csv_fileReader(path: str) -> numpy.ndarray:
-    with open(path) as file:
-        csv_list = list(csv.reader(file))
-        data = numpy.array(csv_list)
-        data = data[1:, 1:]
-        data = data.astype(float)
-        return data
-
 # 检查数据集
 if __name__ == "__main__":
-    print("")
-    print(csv_fileReader("covid.train.csv"))
-    print(csv_fileReader("covid.train.csv").shape)
-    myset = csv_fileReader('covid.train.csv')
-    mylist = list(myset)
-    print(numpy.array(mylist))
+    print("Loading data...")
+    data_root = 'Homework/resources/HW2/timit_11/timit_11/' # 此处为项目根目录（即DL2021而非project2）
+    train_dataset = numpy.load(data_root + "train_11.npy")
+    test_dataset = numpy.load(data_root + "test_11.npy")
+    train_label_dataset = numpy.load(data_root + "train_label_11.npy")
+    print("train_dataset shape: ", train_dataset.shape)
+    print("test_dataset shape: ", test_dataset.shape)
+    print("train_label_dataset shape: ", train_label_dataset.shape)
 
 
+
+
+"""
+数据集的划分
+1. 训练集: train_11.npy
+2. 测试集: test_11.npy
+3. 验证集: train_11.npy
+4. 训练集和验证集的划分: 训练集的前90%作为训练集，后10%作为验证集
+"""
 class MyDataset(Dataset):
     def __init__(self, path: str, mode: str):
         self.mode = mode
         super().__init__()
-        my_data = csv_fileReader(path)
+        my_data = numpy.load(path)
         # 判断是否为测试集:
         if mode == 'test':
             self.data = torch.FloatTensor(my_data)
         else:
-            # 从训练集中选取作为“训练”的部分和“验证”的部分（根据不同的数据特点填写截取的方式）
             # 非test数据集
-            target = my_data[:, -1]
+            target = my_data[:, -1]  # 本两行根据数据特点进行切片
             data = my_data[:, :-1]
+
             train_index = []
             dev_index = []
             num_of_data = my_data.shape[0]
@@ -83,3 +83,11 @@ def create_dataloader(dataset: Dataset, batch_size: int, num_workers: int):
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, drop_last=False)
     return dataloader
 
+
+# def csv_fileReader(path: str) -> numpy.ndarray:
+#     with open(path) as file:
+#         csv_list = list(csv.reader(file))
+#         data = numpy.array(csv_list)
+#         data = data[1:, 1:]
+#         data = data.astype(float)
+#         return data
