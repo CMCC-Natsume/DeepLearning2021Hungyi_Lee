@@ -17,14 +17,7 @@ torch.manual_seed(seed)
 class MyModel(nn.Module):
     def __init__(self, input_dim: int):
         super().__init__()
-        self.network1 = nn.Sequential(
-            nn.Linear(in_features=input_dim, out_features=50),
-            nn.ReLU(),
-            nn.Linear(50, 10),
-            nn.ReLU(),
-            nn.Linear(10, 1)
-        )
-        self.network2 = nn.Sequential(
+        self.network = nn.Sequential(
             nn.Linear(input_dim, 1024),
             nn.ReLU(),
             nn.Linear(1024, 512),
@@ -38,7 +31,7 @@ class MyModel(nn.Module):
 
 
     def forward(self, input_data):
-        return self.network2(input_data)
+        return self.network(input_data)
 
 
 
@@ -59,7 +52,7 @@ def model_training(train_data: DataLoader, dev_data: DataLoader, model: MyModel)
     dev_accuracy = 0.0
     min_loss = 100
     epoch = 1
-    my_optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM)
+    my_optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
     while epoch < MAX_EPOCH:
         model.train()
         for data, label in train_data:

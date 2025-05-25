@@ -4,6 +4,7 @@ import torch
 # import csv
 
 ROUND = 0
+VALIDATION_RATIO = 0.1  # 验证集比例
 
 """
 本项目的数据集构成:
@@ -18,8 +19,6 @@ if __name__ == "__main__":
     print("train_dataset shape: ", train_dataset.shape)
     print("test_dataset shape: ", test_dataset.shape)
     print("train_label_dataset shape: ", train_label_dataset.shape)
-
-
 
 
 """
@@ -84,6 +83,21 @@ def create_dataloader(dataset: Dataset, batch_size: int, num_workers: int):
     DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, drop_last=False)
     return dataloader
 
+
+# create_dev_dataset(dataset: Dataset, batch_size: int, num_workers: int):
+   
+
+
+
+def create_dev_DataLoader(dataset: Dataset, batch_size: int, num_workers: int):
+    """
+    创建验证集的dataloader
+    :param dataset: 验证集
+    :param batch_size: 批大小
+    :param num_workers: 工作线程数
+    :return: 验证集的dataloader
+    """
+    return DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, drop_last=False)
 
 # def csv_fileReader(path: str) -> numpy.ndarray:
 #     with open(path) as file:
