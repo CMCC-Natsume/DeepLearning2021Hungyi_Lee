@@ -11,7 +11,6 @@ if torch.cuda.is_available():
 else:
     device = torch.device("cpu")
 
-# 标记
 seed = 42069
 torch.manual_seed(seed)
 
@@ -26,15 +25,20 @@ class MyModel(nn.Module):
             nn.Linear(10, 1)
         )
         self.network2 = nn.Sequential(
-            nn.Linear(input_dim, 100),
+            nn.Linear(input_dim, 1024),
             nn.ReLU(),
-            nn.Linear(100, 1)
+            nn.Linear(1024, 512),
+            nn.ReLU(),
+            nn.Linear(512, 128),
+            nn.ReLU(),
+            nn.Linear(128, 39),
+            nn.ReLU(),
         )
         self.criterion = nn.CrossEntropyLoss(reduction='mean')
 
 
     def forward(self, input_data):
-        return self.network2(input_data).squeeze(1)  # 标记
+        return self.network2(input_data)
 
 
 
@@ -51,28 +55,35 @@ class MyModel(nn.Module):
 def model_training(train_data: DataLoader, dev_data: DataLoader, model: MyModel):
     train_loss = []
     dev_loss = []
+    train_accuracy = 0.0
+    dev_accuracy = 0.0
     min_loss = 100
     epoch = 1
     my_optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM)
     while epoch < MAX_EPOCH:
         model.train()
         for data, label in train_data:
-            data = data.to(device)
-            label = label.to(device)
+            data, label = data.to(device), label.to(device)
             my_optimizer.zero_grad()
-            output_data = model(data)
-            loss = model.calculate_loss(output_data, label)
+            outputs = model(data)
+            loss = model.calculate_loss(outputs, label)
+            _, predicted_label = torch.max(outputs, 1)
             loss = loss.to(device)
-            # print(f"loss is {loss}")
             train_loss.append(loss.detach())
             loss.backward()
             my_optimizer.step()
 
+            train_accuracy += (predicted_label == label).sum().item()
+            train_loss += loss.item()
+
+        train_accuracy /= len(train_data.dataset)
+        train_loss = sum(train_loss) / len(train_loss)  
         the_loss = dev(model, dev_data)
         if the_loss < min_loss:
             min_loss = the_loss
             print(f"epoch: {epoch}, the lowest loss is {the_loss}")
         dev_loss.append(the_loss.detach())
+        print(f"epoch: {epoch}, train_loss: {train_loss:3.6f}, dev_loss: {the_loss:3.6f}, train_accuracy: {train_accuracy:3.6f}")
 
         epoch += 1
 
