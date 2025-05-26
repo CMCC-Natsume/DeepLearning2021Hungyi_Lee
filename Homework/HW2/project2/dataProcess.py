@@ -31,7 +31,6 @@ class MyDataset(Dataset):
                 target = target.astype(numpy.int64)
             # 不使用 mmap_mode则会将整个数据集加载到内存中，大概率会导致内存不足
             
-
             # 划分训练集和验证集:
             num_of_data = data.shape[0]
             split_index = int(num_of_data * (1 - VALIDATION_RATIO))  # 划分点
@@ -39,9 +38,7 @@ class MyDataset(Dataset):
             dev_index = []
             train_index = list(range(0, split_index))
             dev_index = list(range(split_index, num_of_data))
-            # print(f"train_index: {train_index}, dev_index: {dev_index}")
             
-
             # train数据集(放入属性前最后处理):
             if mode == 'train':
                 self.data = torch.from_numpy(data[train_index]).float()
@@ -53,7 +50,8 @@ class MyDataset(Dataset):
             else:
                 print("Error: mode is not train or dev")
                 raise ValueError("mode is not train or dev")
-
+        if mode == 'train' or mode == 'dev':
+            print("标签范围:", target[train_index].min(), target[train_index].max())
         self.dim = self.data.shape[1]
 
 

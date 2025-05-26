@@ -18,6 +18,7 @@ def plot_learning_curve(train_loss, dev_loss, title=''):
     plt.savefig('learning_curve.png', bbox_inches='tight')  # 保存学习曲线
     plt.close()  # 关闭图形，避免内存泄漏
 
+
 def plot_pred(dv_set, model, device, lim=35., preds=None, targets=None):
     if preds is None or targets is None:
         model.eval()

@@ -4,7 +4,7 @@ import model
 import graphMaking
 
 seed = 42069
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 NUM_WORKERS = 0
 torch.manual_seed(seed)
 
@@ -40,7 +40,7 @@ print(f"Start Training:")
 my_model = model.MyModel(train_dataset.dim)
 my_model.to(device)
 
-print(f"train_dataset.dim = {train_dataset.dim}\n")
+print(f"\tTraining Dataset.dim = {train_dataset.dim}\n")
 train_loss, dev_loss = model.model_training(train_dataloader, dev_dataloader, my_model)
 graphMaking.plot_learning_curve(train_loss, dev_loss, "MyModel")
 

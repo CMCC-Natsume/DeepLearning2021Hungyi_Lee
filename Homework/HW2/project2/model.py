@@ -2,7 +2,7 @@ import torch
 from torch import nn, optim
 from torch.utils.data import Dataset, DataLoader
 
-MAX_EPOCH = 1000
+MAX_EPOCH = 20
 LEARNING_RATE = 0.001
 MOMENTUM = 0.9
 
@@ -51,7 +51,7 @@ def model_training(train_data: DataLoader, dev_data: DataLoader, model: MyModel)
     dev_accuracy = 0.0
     min_loss = 100
     epoch = 1
-    my_optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    my_optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
     while epoch < MAX_EPOCH:
         model.train()
         for data, label in train_data:
