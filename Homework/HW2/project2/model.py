@@ -25,7 +25,6 @@ class MyModel(nn.Module):
             nn.Linear(512, 128),
             nn.ReLU(),
             nn.Linear(128, 39),
-            nn.ReLU(),
         )
         self.criterion = nn.CrossEntropyLoss(reduction='mean')
 
@@ -56,7 +55,8 @@ def model_training(train_data: DataLoader, dev_data: DataLoader, model: MyModel)
     while epoch < MAX_EPOCH:
         model.train()
         for data, label in train_data:
-            data, label = data.to(device), label.to(device)
+            data = data.to(device)
+            label = label.to(device)
             my_optimizer.zero_grad()
             outputs = model(data)
             loss = model.calculate_loss(outputs, label)

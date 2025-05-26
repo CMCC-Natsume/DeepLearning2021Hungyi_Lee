@@ -6,7 +6,20 @@ import torch
 ROUND = 0
 VALIDATION_RATIO = 0.1  # 验证集比例
 
-
+"""
+本项目的数据集构成:
+"""
+# 检查数据集
+if __name__ == "__main__":
+    print("Loading data...")
+    data_root = 'Homework/resources/HW2/timit_11/timit_11/' # 此处为项目根目录（即DL2021而非project2）
+    train_dataset = numpy.load(data_root + "train_11.npy")
+    test_dataset = numpy.load(data_root + "test_11.npy")
+    train_label_dataset = numpy.load(data_root + "train_label_11.npy")
+    print("train_dataset shape: ", train_dataset.shape)
+    print("test_dataset shape: ", test_dataset.shape)
+    print("train_label_dataset shape: ", train_label_dataset.shape)
+    train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=False, num_workers=0, drop_last=False)
 
 
 """
@@ -32,14 +45,14 @@ class MyDataset(Dataset):
             # data = numpy.load(path)
 
             # 划分训练集和验证集:
+            num_of_data = data.shape[0]
+            split_index = int(num_of_data * (1 - VALIDATION_RATIO))  # 划分点
             train_index = []
             dev_index = []
-            num_of_data = data.shape[0]
-            for i in range(num_of_data):
-                if i % 10 == ROUND:
-                    train_index.append(i)
-                else:
-                    dev_index.append(i)
+            train_index = list(range(0, split_index))
+            dev_index = list(range(split_index, num_of_data))
+            # print(f"train_index: {train_index}, dev_index: {dev_index}")
+            
 
             # train数据集(放入属性前最后处理):
             if mode == 'train':

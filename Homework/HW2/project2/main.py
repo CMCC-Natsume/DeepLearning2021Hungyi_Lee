@@ -31,7 +31,7 @@ print(f"Finishing creating datasets!")
 print(f"Starting creating dataloader")
 train_dataloader = dataProcess.create_dataloader(train_dataset, BATCH_SIZE, NUM_WORKERS)
 test_dataloader = dataProcess.create_dataloader(test_dataset, BATCH_SIZE, NUM_WORKERS)
-dev_dataloader = dataProcess.create_dataloader(train_dataset, BATCH_SIZE, NUM_WORKERS)
+dev_dataloader = dataProcess.create_dataloader(dev_dataset, BATCH_SIZE, NUM_WORKERS)
 print(f"Finishing creating dataLoaders!")
 
 
