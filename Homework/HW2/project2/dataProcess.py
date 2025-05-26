@@ -6,21 +6,6 @@ import torch
 ROUND = 0
 VALIDATION_RATIO = 0.1  # 验证集比例
 
-"""
-本项目的数据集构成:
-"""
-# 检查数据集
-if __name__ == "__main__":
-    print("Loading data...")
-    data_root = 'Homework/resources/HW2/timit_11/timit_11/' # 此处为项目根目录（即DL2021而非project2）
-    train_dataset = numpy.load(data_root + "train_11.npy")
-    test_dataset = numpy.load(data_root + "test_11.npy")
-    train_label_dataset = numpy.load(data_root + "train_label_11.npy")
-    print("train_dataset shape: ", train_dataset.shape)
-    print("test_dataset shape: ", test_dataset.shape)
-    print("train_label_dataset shape: ", train_label_dataset.shape)
-    train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=False, num_workers=0, drop_last=False)
-
 
 """
 数据集的划分
@@ -35,14 +20,17 @@ class MyDataset(Dataset):
         self.mode = mode
         # 判断是否为测试集:
         if mode == 'test':
-            self.data = numpy.load(path)
+            self.data = torch.from_numpy(numpy.load(path, mmap_mode='r').copy()).float()
             self.targets = None
         else:
             # 非test数据集
             target = numpy.load(inputLabel, mmap_mode='r')  # 本两行根据数据特点进行切片
             data = numpy.load(path, mmap_mode='r')
-            # target = numpy.load(inputLabel)  # 不使用 mmap_mode则会将整个数据集加载到内存中，大概率会导致内存不足
-            # data = numpy.load(path)
+            if target.dtype.kind in {'U', 'S'}:
+                print("\tWarning: target is string, converting to int64")
+                target = target.astype(numpy.int64)
+            # 不使用 mmap_mode则会将整个数据集加载到内存中，大概率会导致内存不足
+            
 
             # 划分训练集和验证集:
             num_of_data = data.shape[0]
@@ -56,12 +44,12 @@ class MyDataset(Dataset):
 
             # train数据集(放入属性前最后处理):
             if mode == 'train':
-                self.targets = target[train_index]
-                self.data = data[train_index]
+                self.data = torch.from_numpy(data[train_index]).float()
+                self.targets = torch.tensor(target[train_index], dtype=torch.long)
             # dev数据集:
             elif mode == 'dev':
-                self.targets = target[dev_index]
-                self.data = data[dev_index]
+                self.data = torch.from_numpy(data[dev_index]).float()
+                self.targets = torch.tensor(target[dev_index], dtype=torch.long)
             else:
                 print("Error: mode is not train or dev")
                 raise ValueError("mode is not train or dev")
@@ -85,10 +73,6 @@ def create_dataloader(dataset: Dataset, batch_size: int, num_workers: int):
     return dataloader
 
 
-# create_dev_dataset(dataset: Dataset, batch_size: int, num_workers: int):
-   
-
-
 
 def create_dev_DataLoader(dataset: Dataset, batch_size: int, num_workers: int):
     """
@@ -99,6 +83,7 @@ def create_dev_DataLoader(dataset: Dataset, batch_size: int, num_workers: int):
     :return: 验证集的dataloader
     """
     return DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, drop_last=False)
+
 
 # def csv_fileReader(path: str) -> numpy.ndarray:
 #     with open(path) as file:
@@ -116,14 +101,16 @@ def create_dev_DataLoader(dataset: Dataset, batch_size: int, num_workers: int):
 if __name__ == "__main__":
     print("Loading data...")
     data_root = 'Homework/resources/HW2/timit_11/timit_11/' # 此处为项目根目录（即DL2021而非project2）
-    # train_dataset = numpy.load(data_root + "train_11.npy")
-    # test_dataset = numpy.load(data_root + "test_11.npy")
-    # train_label_dataset = numpy.load(data_root + "train_label_11.npy")
-    # print("train_dataset shape: ", train_dataset.shape)
-    # print("test_dataset shape: ", test_dataset.shape)
-    # print("train_label_dataset shape: ", train_label_dataset.shape)
+    train_dataset = numpy.load(data_root + "train_11.npy")
+    test_dataset = numpy.load(data_root + "test_11.npy")
+    train_label_dataset = numpy.load(data_root + "train_label_11.npy")
+    print("train_dataset shape: ", train_dataset.shape)
+    print("test_dataset shape: ", test_dataset.shape)
+    print("train_label_dataset shape: ", train_label_dataset.shape)
+
+    # 查看dataloader中的内容
     T_dataset = MyDataset(data_root + "train_11.npy", 'train', data_root + "train_label_11.npy")
-    T_dataloader = create_dataloader(T_dataset, 16, 0)
+    T_dataloader = create_dataloader(T_dataset, 8, 0)
     for data, label in T_dataloader:
-        print(f"data: {data}, label: {label}")
+        print(f"data: \n{data},\n label: \n{label}")
         break

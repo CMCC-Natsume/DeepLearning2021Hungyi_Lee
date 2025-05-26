@@ -65,19 +65,17 @@ def model_training(train_data: DataLoader, dev_data: DataLoader, model: MyModel)
             train_loss.append(loss.detach())
             loss.backward()
             my_optimizer.step()
-
             train_accuracy += (predicted_label == label).sum().item()
-            train_loss += loss.item()
 
         train_accuracy /= len(train_data.dataset)
-        train_loss = sum(train_loss) / len(train_loss)  
         the_loss = dev(model, dev_data)
         if the_loss < min_loss:
             min_loss = the_loss
-            print(f"epoch: {epoch}, the lowest loss is {the_loss}")
+            print(f"  NOW! in epoch: {epoch}, the lowest loss is {the_loss}")
         dev_loss.append(the_loss.detach())
-        print(f"epoch: {epoch}, train_loss: {train_loss:3.6f}, dev_loss: {the_loss:3.6f}, train_accuracy: {train_accuracy:3.6f}")
-
+        print(f"epoch: {epoch}, train_loss: {train_loss[epoch]:3.6f}, dev_loss: {the_loss:3.6f}, train_accuracy: {train_accuracy:3.6f}")
+        train_accuracy = 0.0
+        dev_accuracy = 0.0
         epoch += 1
 
     return train_loss, dev_loss
