@@ -6,19 +6,7 @@ import torch
 ROUND = 0
 VALIDATION_RATIO = 0.1  # 验证集比例
 
-"""
-本项目的数据集构成:
-"""
-# 检查数据集
-if __name__ == "__main__":
-    print("Loading data...")
-    data_root = 'Homework/resources/HW2/timit_11/timit_11/' # 此处为项目根目录（即DL2021而非project2）
-    train_dataset = numpy.load(data_root + "train_11.npy")
-    test_dataset = numpy.load(data_root + "test_11.npy")
-    train_label_dataset = numpy.load(data_root + "train_label_11.npy")
-    print("train_dataset shape: ", train_dataset.shape)
-    print("test_dataset shape: ", test_dataset.shape)
-    print("train_label_dataset shape: ", train_label_dataset.shape)
+
 
 
 """
@@ -106,3 +94,23 @@ def create_dev_DataLoader(dataset: Dataset, batch_size: int, num_workers: int):
 #         data = data[1:, 1:]
 #         data = data.astype(float)
 #         return data
+
+
+"""
+本项目的数据集构成:
+"""
+# 检查数据集
+if __name__ == "__main__":
+    print("Loading data...")
+    data_root = 'Homework/resources/HW2/timit_11/timit_11/' # 此处为项目根目录（即DL2021而非project2）
+    # train_dataset = numpy.load(data_root + "train_11.npy")
+    # test_dataset = numpy.load(data_root + "test_11.npy")
+    # train_label_dataset = numpy.load(data_root + "train_label_11.npy")
+    # print("train_dataset shape: ", train_dataset.shape)
+    # print("test_dataset shape: ", test_dataset.shape)
+    # print("train_label_dataset shape: ", train_label_dataset.shape)
+    T_dataset = MyDataset(data_root + "train_11.npy", 'train', data_root + "train_label_11.npy")
+    T_dataloader = create_dataloader(T_dataset, 16, 0)
+    for data, label in T_dataloader:
+        print(f"data: {data}, label: {label}")
+        break
