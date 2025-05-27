@@ -3,8 +3,11 @@ import dataProcess
 import model
 import graphMaking
 
+# 使用自动求导引擎
+torch.backends.cudnn.benchmark = True
+
 seed = 42069
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 NUM_WORKERS = 0
 torch.manual_seed(seed)
 
@@ -33,6 +36,7 @@ train_dataloader = dataProcess.create_dataloader(train_dataset, BATCH_SIZE, NUM_
 test_dataloader = dataProcess.create_dataloader(test_dataset, BATCH_SIZE, NUM_WORKERS)
 dev_dataloader = dataProcess.create_dataloader(dev_dataset, BATCH_SIZE, NUM_WORKERS)
 print(f"Finishing creating dataLoaders!")
+print(f"\tTraining Dataset.dim = {train_dataset.dim}\n")
 
 
 # 训练开始
@@ -40,8 +44,7 @@ print(f"Start Training:")
 my_model = model.MyModel(train_dataset.dim)
 my_model.to(device)
 
-print(f"\tTraining Dataset.dim = {train_dataset.dim}\n")
 train_loss, dev_loss = model.model_training(train_dataloader, dev_dataloader, my_model)
-graphMaking.plot_learning_curve(train_loss, dev_loss, "MyModel")
+graphMaking.plot_learning_curve(train_loss, dev_loss, "ModelOfTIMIT11")
 
 

@@ -6,20 +6,17 @@ matplotlib.use('Agg')  # 强制使用非交互式后端(WSL中使用时需要添
 def plot_learning_curve(train_loss, dev_loss, title=''):
     train_loss = [t.cpu().item() if isinstance(t, torch.Tensor) else t for t in train_loss]
     dev_loss = [t.cpu().item() if isinstance(t, torch.Tensor) else t for t in dev_loss]
-
-
-    total_steps = len(train_loss)
-    x_1 = range(total_steps)
-    x_2 = x_1[::total_steps // len(dev_loss)]
+    min_loss = min(min(train_loss), min(dev_loss)) - 0.1
+    max_loss = max(max(train_loss), max(dev_loss)) + 0.1
     plt.figure(1, figsize=(6, 4))
-    plt.plot(x_1, train_loss, c='tab:red', label='train')
-    plt.plot(x_2, dev_loss, c='tab:cyan', label='dev')
-    plt.ylim(0.0, 5.)
-    plt.xlabel('Training steps')
-    plt.ylabel('MSE loss')
+    plt.plot(range(len(train_loss)), train_loss, c='tab:red', label='train')
+    plt.plot(range(len(dev_loss)), dev_loss, c='tab:cyan', label='dev')
+    plt.ylim(min_loss, max_loss)  # 设置y轴范围
+    plt.xlabel('Epoch')
+    plt.ylabel('CrossEntropyLoss')
     plt.title('Learning curve of {}'.format(title))
     plt.legend()
-    plt.savefig('learning_curve.png', bbox_inches='tight')  # 保存学习曲线
+    plt.savefig('Homework/HW2/project2/savedGraph/learning_curve.png', bbox_inches='tight')  # 保存学习曲线
     plt.close()  # 关闭图形，避免内存泄漏
 
 

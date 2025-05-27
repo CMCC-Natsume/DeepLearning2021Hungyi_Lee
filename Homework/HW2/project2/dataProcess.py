@@ -97,15 +97,16 @@ def create_dev_DataLoader(dataset: Dataset, batch_size: int, num_workers: int):
 """
 # 检查数据集
 if __name__ == "__main__":
+    # 查看数据加载情况
     print("Loading data...")
     data_root = 'Homework/resources/HW2/timit_11/timit_11/' # 此处为项目根目录（即DL2021而非project2）
     train_dataset = numpy.load(data_root + "train_11.npy")
     test_dataset = numpy.load(data_root + "test_11.npy")
     train_label_dataset = numpy.load(data_root + "train_label_11.npy")
+    # 查看数据集的形状
     print("train_dataset shape: ", train_dataset.shape)
     print("test_dataset shape: ", test_dataset.shape)
     print("train_label_dataset shape: ", train_label_dataset.shape)
-
     # 查看dataloader中的内容
     T_dataset = MyDataset(data_root + "train_11.npy", 'train', data_root + "train_label_11.npy")
     T_dataloader = create_dataloader(T_dataset, 8, 0)
