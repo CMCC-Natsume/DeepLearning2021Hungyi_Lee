@@ -4,6 +4,10 @@ from matplotlib import pyplot as plt
 matplotlib.use('Agg')  # 强制使用非交互式后端(WSL中使用时需要添加本行)
 
 def plot_learning_curve(train_loss, dev_loss, title=''):
+    train_loss = [t.cpu().item() if isinstance(t, torch.Tensor) else t for t in train_loss]
+    dev_loss = [t.cpu().item() if isinstance(t, torch.Tensor) else t for t in dev_loss]
+
+
     total_steps = len(train_loss)
     x_1 = range(total_steps)
     x_2 = x_1[::total_steps // len(dev_loss)]
