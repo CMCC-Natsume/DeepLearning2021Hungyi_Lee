@@ -2,8 +2,8 @@ import torch
 from torch import nn, optim
 from torch.utils.data import Dataset, DataLoader
 
-MAX_EPOCH = 15
-LEARNING_RATE = 0.001
+MAX_EPOCH = 25
+LEARNING_RATE = 0.0001
 MOMENTUM = 0.9
 
 if torch.cuda.is_available():
@@ -18,13 +18,25 @@ class MyModel(nn.Module):
     def __init__(self, input_dim: int):
         super().__init__()
         self.network = nn.Sequential(
-            nn.Linear(input_dim, 1024),
+            nn.Linear(input_dim, 2048),
+            nn.BatchNorm1d(2048),  # 批次归一化层
             nn.ReLU(),
-            nn.Linear(1024, 512),
+            nn.Dropout(0.2),  # Dropout层，防止过拟合
+
+            nn.Linear(2048, 1024),
+            nn.BatchNorm1d(1024),
             nn.ReLU(),
-            nn.Linear(512, 128),
+            nn.Dropout(0.2),
+
+            nn.Linear(1024, 256),
+            nn.BatchNorm1d(256),
             nn.ReLU(),
-            nn.Linear(128, 39),
+            nn.Dropout(0.2),
+
+            nn.Linear(256, 128),
+            nn.ReLU(),
+
+            nn.Linear(128, 39)  # 39个音素类别
         )
         self.criterion = nn.CrossEntropyLoss(reduction='mean')
 

@@ -65,7 +65,7 @@ class MyDataset(Dataset):
         return len(self.data)
 
 
-def create_dataloader(dataset: Dataset, batch_size: int, num_workers: int):
+def create_dataloader(dataset: Dataset, batch_size: int, num_workers: int, shuffle=False):
     dataloader = \
     DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, drop_last=False)
     return dataloader

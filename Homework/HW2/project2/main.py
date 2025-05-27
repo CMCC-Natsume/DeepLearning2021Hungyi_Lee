@@ -32,7 +32,7 @@ print(f"Finishing creating datasets!")
 
 # 训练集和验证集的划分
 print(f"Start creating dataloader")
-train_dataloader = dataProcess.create_dataloader(train_dataset, BATCH_SIZE, NUM_WORKERS)
+train_dataloader = dataProcess.create_dataloader(train_dataset, BATCH_SIZE, NUM_WORKERS, shuffle=True)
 test_dataloader = dataProcess.create_dataloader(test_dataset, BATCH_SIZE, NUM_WORKERS)
 dev_dataloader = dataProcess.create_dataloader(dev_dataset, BATCH_SIZE, NUM_WORKERS)
 print(f"Finishing creating dataLoaders!")
