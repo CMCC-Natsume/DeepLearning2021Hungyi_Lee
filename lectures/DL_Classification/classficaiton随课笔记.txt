@@ -1,7 +1,7 @@
 1. 在regression中，我们通过预测得到一个数值，从而比较真实值和预测值差距来改善模型。而在classification问题中，我们先得到的是一个向量，然后通过softmax得到一个具体的数值
 2. softmax的内部逻辑
 3. softmax除了normalize以外，还会让输入的差距变大（输入一般叫logit）。极端情况下（两个class的分类），我们直接用sigmoid。
-4. 两个class时所用的sigmoid和softmax之间有什么关系吗，实则等价
+4. 两个class时所用的sigmoid和softmax之间有什么关系吗————实则等价
 5. classification问题中我们常用什么loss function呢，虽然mean square error可以应用，但更常见的做法是cross-entropy（pytorch里，它和softmax是绑在一起的）
 6. minimize cross-entropy == maximize likelihood
 7. 为什么cross-entropy优于mean square error？详见error surface（后者在部分地方过于平坦，可能会stuck）

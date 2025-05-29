@@ -7,7 +7,7 @@ import graphMaking
 torch.backends.cudnn.benchmark = True
 
 seed = 42069
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 NUM_WORKERS = 0
 torch.manual_seed(seed)
 

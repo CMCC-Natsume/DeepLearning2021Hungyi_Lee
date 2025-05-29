@@ -2,7 +2,7 @@ import torch
 from torch import nn, optim
 from torch.utils.data import Dataset, DataLoader
 
-MAX_EPOCH = 25
+MAX_EPOCH = 30
 LEARNING_RATE = 0.0001
 MOMENTUM = 0.9
 
@@ -21,17 +21,17 @@ class MyModel(nn.Module):
             nn.Linear(input_dim, 2048),
             nn.BatchNorm1d(2048),  # 批次归一化层
             nn.ReLU(),
-            nn.Dropout(0.2),  # Dropout层，防止过拟合
+            nn.Dropout(0.3),  # Dropout层，防止过拟合
 
             nn.Linear(2048, 1024),
             nn.BatchNorm1d(1024),
             nn.ReLU(),
-            nn.Dropout(0.2),
+            nn.Dropout(0.3),
 
             nn.Linear(1024, 256),
             nn.BatchNorm1d(256),
             nn.ReLU(),
-            nn.Dropout(0.2),
+            nn.Dropout(0.3),
 
             nn.Linear(256, 128),
             nn.ReLU(),
@@ -64,7 +64,8 @@ def model_training(train_data: DataLoader, dev_data: DataLoader, model: MyModel)
     dev_accuracy = 0.0
     min_loss = 100
     epoch = 0
-    my_optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
+    my_optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-3)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(my_optimizer, mode='min', factor=0.1, patience=5, verbose=True)
 
     while epoch < MAX_EPOCH:
         model.train()

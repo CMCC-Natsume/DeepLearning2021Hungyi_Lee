@@ -15,7 +15,7 @@ VALIDATION_RATIO = 0.1  # 验证集比例
 4. 训练集和验证集的划分: 训练集的前90%作为训练集，后10%作为验证集
 """
 class MyDataset(Dataset):
-    def __init__(self, path: str, mode: str, inputLabel: str = None):
+    def __init__(self, path: str, mode: str, inputLabel: str = ''):
         super().__init__()
         self.mode = mode
         # 判断是否为测试集:

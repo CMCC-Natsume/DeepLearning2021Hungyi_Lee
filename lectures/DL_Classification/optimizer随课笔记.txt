@@ -1,4 +1,4 @@
-1. critical point 不一定是训练中最大的问题
+】1. critical point 不一定是训练中最大的问题
 
 2. loss不再下降时gradient不一定很小
 
@@ -8,7 +8,7 @@
 
 5. （RMSProp，可调整不同次gradient对学习率设置的权重）前n-1次与最后一次分别占（1-a）和a
 
-6. 根据lecture中的例子，参数的调整在接近critical point时会发生较大震荡，然后逐渐缩小，靠向critical point。这一过程会发生多次，要想解决这个问题，我们需要用到learing rate的scheduling
+6. 根据lecture中的例子，参数的调整在接近critical point时会发生较大震荡，然后逐渐缩小，靠向critical point。这一过程会发生多次，要想解决这个问题，我们需要用到learning rate的scheduling
 比如learning rate decay和warm up。（与时间相关）
 
 7. root mean square只考虑大小，momentum还考虑了方向，而且两个参数使用过去gradient的方式不同，所以不会互相抵消（一个位于分子，一个位于分母）
