@@ -2,8 +2,8 @@ import torch
 from torch import nn, optim
 from torch.utils.data import Dataset, DataLoader
 
-MAX_EPOCH = 30
-LEARNING_RATE = 0.0001
+MAX_EPOCH = 35
+LEARNING_RATE = 0.0005
 MOMENTUM = 0.9
 
 if torch.cuda.is_available():
@@ -17,25 +17,30 @@ torch.manual_seed(seed)
 class MyModel(nn.Module):
     def __init__(self, input_dim: int):
         super().__init__()
-        self.network = nn.Sequential(
-            nn.Linear(input_dim, 2048),
-            nn.BatchNorm1d(2048),  # 批次归一化层
-            nn.ReLU(),
-            nn.Dropout(0.3),  # Dropout层，防止过拟合
+        self.network = nn.Sequential(  # 跑出的结果不如testNetwork
 
-            nn.Linear(2048, 1024),
-            nn.BatchNorm1d(1024),
+            nn.Linear(input_dim, 512),
+            nn.BatchNorm1d(512),  # 批次归一化层
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.25),  # Dropout层，防止过拟合
 
-            nn.Linear(1024, 256),
+            nn.Linear(512, 256),
             nn.BatchNorm1d(256),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.25),
 
             nn.Linear(256, 128),
             nn.ReLU(),
 
+            nn.Linear(128, 39)  # 39个音素类别
+        )
+        self.test_network = nn.Sequential(
+            nn.Linear(input_dim, 1024),
+            nn.Sigmoid(),
+            nn.Linear(1024, 512),
+            nn.Sigmoid(),
+            nn.Linear(512, 128),
+            nn.Sigmoid(),
             nn.Linear(128, 39)  # 39个音素类别
         )
         self.criterion = nn.CrossEntropyLoss(reduction='mean')
@@ -64,9 +69,8 @@ def model_training(train_data: DataLoader, dev_data: DataLoader, model: MyModel)
     dev_accuracy = 0.0
     min_loss = 100
     epoch = 0
-    my_optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-3)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(my_optimizer, mode='min', factor=0.1, patience=5, verbose=True)
-
+    my_optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
+    scheduler = optim.lr_scheduler.StepLR(my_optimizer, step_size=10, gamma=0.5)  # 学习率衰减
     while epoch < MAX_EPOCH:
         model.train()
         # 重置上一个epoch的损失和准确率
@@ -90,6 +94,8 @@ def model_training(train_data: DataLoader, dev_data: DataLoader, model: MyModel)
             # Classification问题计算预测正确个数
             train_accuracy += (predicted_label == label).sum().item()
 
+        # 学习率衰减
+        scheduler.step()  
         # 计算平均损失和准确率
         train_loss.append(sum(epoch_loss) / len(epoch_loss))
         train_accuracy /= len(train_data.dataset)

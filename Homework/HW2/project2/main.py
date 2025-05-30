@@ -2,12 +2,26 @@ import torch
 import dataProcess
 import model
 import graphMaking
+import numpy as np
+
+# fix random seed
+def same_seeds(seed):
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)  
+    np.random.seed(seed)  
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+
+
+# same_seeds(42069)  # 固定随机种子，确保结果可复现
 
 # 使用自动求导引擎
 torch.backends.cudnn.benchmark = True
 
 seed = 42069
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 NUM_WORKERS = 0
 torch.manual_seed(seed)
 
@@ -27,7 +41,7 @@ data_root = 'Homework/resources/HW2/timit_11/timit_11/' # 此处为项目根目�
 train_dataset = dataProcess.MyDataset(data_root + "train_11.npy", 'train', data_root + "train_label_11.npy")
 test_dataset = dataProcess.MyDataset(data_root + "test_11.npy", 'test', None)
 dev_dataset = dataProcess.MyDataset(data_root + "train_11.npy", 'dev', data_root + "train_label_11.npy")
-print(f"Finishing creating datasets!")
+print(f"Finishing creating datasets!\n")
 
 
 # 训练集和验证集的划分
@@ -46,5 +60,6 @@ my_model.to(device)
 
 train_loss, dev_loss = model.model_training(train_dataloader, dev_dataloader, my_model)
 graphMaking.plot_learning_curve(train_loss, dev_loss, "ModelOfTIMIT11")
+
 
 

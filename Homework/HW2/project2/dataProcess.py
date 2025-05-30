@@ -51,7 +51,7 @@ class MyDataset(Dataset):
                 print("Error: mode is not train or dev")
                 raise ValueError("mode is not train or dev")
         if mode == 'train' or mode == 'dev':
-            print("标签范围:", target[train_index].min(), target[train_index].max())
+            print("\n标签范围:", target[train_index].min(), target[train_index].max())
         self.dim = self.data.shape[1]
 
 
