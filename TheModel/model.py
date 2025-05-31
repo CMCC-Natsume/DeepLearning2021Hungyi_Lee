@@ -15,6 +15,7 @@ else:
 seed = 42069
 torch.manual_seed(seed)
 
+
 class MyModel(nn.Module):
     def __init__(self, input_dim: int):
         super().__init__()
@@ -23,20 +24,15 @@ class MyModel(nn.Module):
             nn.ReLU(),
             nn.Linear(50, 10),
             nn.ReLU(),
-            nn.Linear(10, 1)
+            nn.Linear(10, 1),
         )
         self.network2 = nn.Sequential(
-            nn.Linear(input_dim, 100),
-            nn.ReLU(),
-            nn.Linear(100, 1)
+            nn.Linear(input_dim, 100), nn.ReLU(), nn.Linear(100, 1)
         )
-        self.criterion = nn.MSELoss(reduction='mean')
-
+        self.criterion = nn.MSELoss(reduction="mean")
 
     def forward(self, input_data):
         return self.network2(input_data).squeeze(1)  # 标记
-
-
 
     def calculate_loss(self, prediction, label):
         """
@@ -44,8 +40,6 @@ class MyModel(nn.Module):
         :return:
         """
         return self.criterion(prediction, label)
-
-
 
 
 def model_training(train_data: DataLoader, dev_data: DataLoader, model: MyModel):
@@ -79,11 +73,10 @@ def model_training(train_data: DataLoader, dev_data: DataLoader, model: MyModel)
     return train_loss, dev_loss
 
 
-
 def dev(model: MyModel, dev_data: DataLoader):
     model.eval()  # 标记
     loss = []
-    for data, label in dev_data:    
+    for data, label in dev_data:
         data = data.to(device)
         label = label.to(device)
         output = model(data)
@@ -104,6 +97,3 @@ def dev(model: MyModel, dev_data: DataLoader):
 #         output = model(data)
 #         loss.append(model.calculate_loss(output, label))
 #     return sum(loss) / len(loss)
-
-
-

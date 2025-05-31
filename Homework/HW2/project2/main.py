@@ -1,16 +1,17 @@
-import torch
 import dataProcess
-import model
 import graphMaking
+import model
 import numpy as np
+import torch
+
 
 # fix random seed
 def same_seeds(seed):
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)  
-    np.random.seed(seed)  
+        torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
 
@@ -37,29 +38,32 @@ else:
 
 # 填入资源文件路径
 print("Loading data...")
-data_root = 'Homework/resources/HW2/timit_11/timit_11/' # 此处为项目根目录（即DL2021而非project2）
-train_dataset = dataProcess.MyDataset(data_root + "train_11.npy", 'train', data_root + "train_label_11.npy")
-test_dataset = dataProcess.MyDataset(data_root + "test_11.npy", 'test', None)
-dev_dataset = dataProcess.MyDataset(data_root + "train_11.npy", 'dev', data_root + "train_label_11.npy")
-print(f"Finishing creating datasets!\n")
+data_root = "Homework/resources/HW2/timit_11/timit_11/"  # 此处为项目根目录（即DL2021而非project2）
+train_dataset = dataProcess.MyDataset(
+    data_root + "train_11.npy", "train", data_root + "train_label_11.npy"
+)
+test_dataset = dataProcess.MyDataset(data_root + "test_11.npy", "test", None)
+dev_dataset = dataProcess.MyDataset(
+    data_root + "train_11.npy", "dev", data_root + "train_label_11.npy"
+)
+print("Finishing creating datasets!\n")
 
 
 # 训练集和验证集的划分
-print(f"Start creating dataloader")
-train_dataloader = dataProcess.create_dataloader(train_dataset, BATCH_SIZE, NUM_WORKERS, shuffle=True)
+print("Start creating dataloader")
+train_dataloader = dataProcess.create_dataloader(
+    train_dataset, BATCH_SIZE, NUM_WORKERS, shuffle=True
+)
 test_dataloader = dataProcess.create_dataloader(test_dataset, BATCH_SIZE, NUM_WORKERS)
 dev_dataloader = dataProcess.create_dataloader(dev_dataset, BATCH_SIZE, NUM_WORKERS)
-print(f"Finishing creating dataLoaders!")
+print("Finishing creating dataLoaders!")
 print(f"\tTraining Dataset.dim = {train_dataset.dim}\n")
 
 
 # 训练开始
-print(f"Start Training:")
+print("Start Training:")
 my_model = model.MyModel(train_dataset.dim)
 my_model.to(device)
 
 train_loss, dev_loss = model.model_training(train_dataloader, dev_dataloader, my_model)
 graphMaking.plot_learning_curve(train_loss, dev_loss, "ModelOfTIMIT11")
-
-
-

@@ -19,9 +19,9 @@ else:
 
 
 # 填入资源文件路径
-train_dataset = dataProcess.MyDataset("resources/covid.train.csv", 'train')
-test_dataset = dataProcess.MyDataset("resources/covid.test.csv", 'test')
-dev_dataset = dataProcess.MyDataset("resources/covid.train.csv", 'dev')
+train_dataset = dataProcess.MyDataset("resources/covid.train.csv", "train")
+test_dataset = dataProcess.MyDataset("resources/covid.test.csv", "test")
+dev_dataset = dataProcess.MyDataset("resources/covid.train.csv", "dev")
 
 
 # 训练集和验证集的划分
@@ -36,13 +36,3 @@ my_model.to(device)
 print(train_dataset.dim)
 train_loss, dev_loss = model.model_training(train_dataloader, dev_dataloader, my_model)
 graphMaking.plot_learning_curve(train_loss, dev_loss, "MyModel")
-
-
-
-
-
-
-
-
-
-
