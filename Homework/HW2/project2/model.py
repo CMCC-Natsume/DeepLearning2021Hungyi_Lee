@@ -1,6 +1,6 @@
 import torch
 from torch import nn, optim
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 
 MAX_EPOCH = 35
 LEARNING_RATE = 0.0005

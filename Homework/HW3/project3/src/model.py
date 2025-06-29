@@ -1,10 +1,12 @@
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 MAX_EPOCH = 35
 LEARNING_RATE = 0.0005
 MOMENTUM = 0.9
+THRESHOLD = 0.65
 
 if torch.cuda.is_available():
     device = torch.device("cuda")
@@ -18,32 +20,36 @@ torch.manual_seed(seed)
 class MyModel(nn.Module):
     def __init__(self, input_dim: int):
         super().__init__()
-        self.network = nn.Sequential(  # 跑出的结果不如testNetwork
-            nn.Linear(input_dim, 512),
-            nn.BatchNorm1d(512),  # 批次归一化层
+        self.cnn_layers = nn.Sequential(  # 跑出的结果不如testNetwork
+            nn.Conv2d(3, 64, 3, 1, 1),
+            nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.Dropout(0.25),  # Dropout层，防止过拟合
-            nn.Linear(512, 256),
-            nn.BatchNorm1d(256),
+            nn.MaxPool2d(2, 2, 0),
+            nn.Conv2d(64, 128, 3, 1, 1),
+            nn.BatchNorm2d(128),
             nn.ReLU(),
-            nn.Dropout(0.25),
-            nn.Linear(256, 128),
+            nn.MaxPool2d(2, 2, 0),
+            nn.Conv2d(128, 256, 3, 1, 1),
+            nn.BatchNorm2d(256),
             nn.ReLU(),
-            nn.Linear(128, 39),  # 39个音素类别
+            nn.MaxPool2d(4, 4, 0),
         )
-        self.test_network = nn.Sequential(
-            nn.Linear(input_dim, 1024),
-            nn.Sigmoid(),
-            nn.Linear(1024, 512),
-            nn.Sigmoid(),
-            nn.Linear(512, 128),
-            nn.Sigmoid(),
-            nn.Linear(128, 39),  # 39个音素类别
+        self.fc_layers = nn.Sequential(
+            nn.Linear(256 * 8 * 8, 256),
+            nn.ReLU(),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+            nn.Linear(256, 11),  # 11个类别
         )
         self.criterion = nn.CrossEntropyLoss(reduction="mean")
 
-    def forward(self, input_data):
-        return self.network(input_data)
+    def forward(self, x):
+        # input (x): [batch_size, 3, 128, 128]
+        # output: [batch_size, 11]
+        x = self.cnn_layers(x)
+        x = x.flatten(1)
+        x = self.fc_layers(x)
+        return x
 
     def calculate_loss(self, prediction, label):
         """
@@ -71,7 +77,7 @@ def model_training(train_data: DataLoader, dev_data: DataLoader, model: MyModel)
         train_accuracy = 0.0
         dev_accuracy = 0.0
         epoch_loss.clear()
-        for data, label in train_data:
+        for data, label in tqdm(train_data):
             # 将数据和标签移动到设备上
             data, label = data.to(device), label.to(device)
             # 正向传播
@@ -130,6 +136,24 @@ def model_validation(model: MyModel, dev_data: DataLoader):
     # 计算平均损失
     dev_accuracy /= len(dev_data.dataset)
     return sum(loss) / len(loss), dev_accuracy
+
+
+def get_pseudo_labels(data_loader: DataLoader, model: MyModel):
+    """
+    获取伪标签
+    :param data: 数据加载器
+    :param model: 模型
+    :return: 伪标签列表
+    """
+    softmax = nn.Softmax(dim=-1)
+    model.eval()
+    pseudo_labels = []
+    with torch.no_grad():
+        for inputs in data_loader:
+            image, _ = inputs
+            image = image.to(device)
+            logits = model(image)
+            probs = softmax(logits)
 
 
 # def test(model: MyModel, test_data: DataLoader):

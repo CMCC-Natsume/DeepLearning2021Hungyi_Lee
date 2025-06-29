@@ -1,13 +1,14 @@
+import os
+
 from PIL import Image
 from torch.utils.data import DataLoader
 from torchvision.datasets import DatasetFolder
 from torchvision.transforms import transforms as transforms
 
-"""
-本项目的数据集构成:
-"""
+# 确认资源文件夹存在并列出内容
+print()
+print(os.listdir("Homework/resources/HW3/food-11/"))
 
-# 检查数据集
 
 # 查看数据加载情况
 print("\nLoading data...")
@@ -51,12 +52,15 @@ test_dataset = DatasetFolder(
     extensions=(".jpg",),
     transform=test_transfrom,
 )
+
+
 # 查看数据集的形状
+print(f"train_dataset type:\t{type(train_dataset)}")
 print("train_dataset shape: ", train_dataset.samples[0][0])
 print("test_dataset shape: ", test_dataset.samples[0][0])
 # 查看dataloader中的内容
-T_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=0)
+T_dataloader = DataLoader(train_dataset, batch_size=2, shuffle=True, num_workers=0)
 # 查看数据集的标签
 for data, label in T_dataloader:
-    print(f"\ndata: \n{data},\nlabel:\n{label}")
+    print(f"\ndata: \n{data},\n\nlabel:\n{label}")
     break

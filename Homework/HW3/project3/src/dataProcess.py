@@ -1,10 +1,8 @@
-import numpy
-import torch
+from PIL import Image
 from torch.utils.data import DataLoader, Dataset
+from torchvision.datasets import DatasetFolder
+from torchvision.transforms import transforms as transforms
 
-# import csv
-
-ROUND = 0
 VALIDATION_RATIO = 0.1  # 验证集比例
 
 
@@ -15,56 +13,6 @@ VALIDATION_RATIO = 0.1  # 验证集比例
 3. 验证集: 
 4. 训练集和验证集的划分: 训练集的前90%作为训练集，后10%作为验证集
 """
-
-
-class MyDataset(Dataset):
-    def __init__(self, path: str, mode: str, inputLabel: str = ""):
-        super().__init__()
-        self.mode = mode
-        # 判断是否为测试集:
-        if mode == "test":
-            self.data = torch.from_numpy(numpy.load(path, mmap_mode="r").copy()).float()
-            self.targets = None
-        else:
-            # 非test数据集
-            target = numpy.load(inputLabel, mmap_mode="r")  # 本两行根据数据特点进行切片
-            data = numpy.load(path, mmap_mode="r")
-            if target.dtype.kind in {"U", "S"}:
-                print("\tWarning: target is string, converting to int64")
-                target = target.astype(numpy.int64)
-            # 不使用 mmap_mode则会将整个数据集加载到内存中，大概率会导致内存不足
-
-            # 划分训练集和验证集:
-            num_of_data = data.shape[0]
-            split_index = int(num_of_data * (1 - VALIDATION_RATIO))  # 划分点
-            train_index = []
-            dev_index = []
-            train_index = list(range(0, split_index))
-            dev_index = list(range(split_index, num_of_data))
-
-            # train数据集(放入属性前最后处理):
-            if mode == "train":
-                self.data = torch.from_numpy(data[train_index]).float()
-                self.targets = torch.tensor(target[train_index], dtype=torch.long)
-            # dev数据集:
-            elif mode == "dev":
-                self.data = torch.from_numpy(data[dev_index]).float()
-                self.targets = torch.tensor(target[dev_index], dtype=torch.long)
-            else:
-                print("Error: mode is not train or dev")
-                raise ValueError("mode is not train or dev")
-        if mode == "train" or mode == "dev":
-            print("\n标签范围:", target[train_index].min(), target[train_index].max())
-        self.dim = self.data.shape[1]
-
-    def __getitem__(self, item):
-        if self.mode == "train" or self.mode == "dev":
-            return self.data[item], self.targets[item]
-        else:
-            return self.data[item]
-
-    def __len__(self):
-        return len(self.data)
 
 
 def create_dataloader(
@@ -80,27 +28,62 @@ def create_dataloader(
     return dataloader
 
 
-def create_dev_DataLoader(dataset: Dataset, batch_size: int, num_workers: int):
-    """
-    创建验证集的dataloader
-    :param dataset: 验证集
-    :param batch_size: 批大小
-    :param num_workers: 工作线程数
-    :return: 验证集的dataloader
-    """
-    return DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_workers,
-        drop_last=False,
+def create_dataset(data_root: str):
+    # 以下为部分数据预处理：
+    train_transfrom = transforms.Compose(
+        [
+            transforms.Resize([128, 128]),
+            transforms.ToTensor(),
+        ]
+    )
+    test_transfrom = transforms.Compose(
+        [
+            transforms.Resize([128, 128]),
+            transforms.ToTensor(),
+        ]
     )
 
+    train_dataset = DatasetFolder(
+        root=data_root + "training/labeled",
+        loader=lambda x: Image.open(x),
+        extensions=(".jpg",),
+        transform=train_transfrom,
+    )
+    valid_dataset = DatasetFolder(
+        root=data_root + "validation",
+        loader=lambda x: Image.open(x),
+        extensions=(".jpg",),
+        transform=test_transfrom,
+    )
+    unlabeled_dataset = DatasetFolder(
+        root=data_root + "training/unlabeled",
+        loader=lambda x: Image.open(x),
+        extensions=(".jpg",),
+        transform=train_transfrom,
+    )
+    test_dataset = DatasetFolder(
+        root=data_root + "testing",
+        loader=lambda x: Image.open(x),
+        extensions=(".jpg",),
+        transform=test_transfrom,
+    )
+    print("Finishing creating datasets!\n")
 
-# def csv_fileReader(path: str) -> numpy.ndarray:
-#     with open(path) as file:
-#         csv_list = list(csv.reader(file))
-#         data = numpy.array(csv_list)
-#         data = data[1:, 1:]
-#         data = data.astype(float)
-#         return data
+    return train_dataset, valid_dataset, unlabeled_dataset, test_dataset
+
+
+# def create_dev_DataLoader(dataset: Dataset, batch_size: int, num_workers: int):
+#     """
+#     创建验证集的dataloader
+#     :param dataset: 验证集
+#     :param batch_size: 批大小
+#     :param num_workers: 工作线程数
+#     :return: 验证集的dataloader
+#     """
+#     return DataLoader(
+#         dataset,
+#         batch_size=batch_size,
+#         shuffle=False,
+#         num_workers=num_workers,
+#         drop_last=False,
+#     )
