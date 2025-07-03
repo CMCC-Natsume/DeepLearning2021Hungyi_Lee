@@ -1,6 +1,7 @@
+import dataProcess
 import torch
 from torch import nn, optim
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 MAX_EPOCH = 35
@@ -8,19 +9,19 @@ LEARNING_RATE = 0.0005
 MOMENTUM = 0.9
 THRESHOLD = 0.65
 
+seed = 42069
+torch.manual_seed(seed)
+
 if torch.cuda.is_available():
     device = torch.device("cuda")
 else:
     device = torch.device("cpu")
 
-seed = 42069
-torch.manual_seed(seed)
-
 
 class MyModel(nn.Module):
     def __init__(self, input_dim: int):
         super().__init__()
-        self.cnn_layers = nn.Sequential(  # 跑出的结果不如testNetwork
+        self.cnn_layers = nn.Sequential(
             nn.Conv2d(3, 64, 3, 1, 1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
@@ -45,17 +46,13 @@ class MyModel(nn.Module):
 
     def forward(self, x):
         # input (x): [batch_size, 3, 128, 128]
-        # output: [batch_size, 11]
         x = self.cnn_layers(x)
         x = x.flatten(1)
         x = self.fc_layers(x)
+        # output: [batch_size, 11]
         return x
 
     def calculate_loss(self, prediction, label):
-        """
-        标记
-        :return:
-        """
         return self.criterion(prediction, label)
 
 
@@ -120,7 +117,7 @@ def model_training(train_data: DataLoader, dev_data: DataLoader, model: MyModel)
 
 
 def model_validation(model: MyModel, dev_data: DataLoader):
-    model.eval()  # 标记
+    model.eval()
     loss = []
     dev_accuracy = 0.0
     # 计算验证集的损失
@@ -138,22 +135,39 @@ def model_validation(model: MyModel, dev_data: DataLoader):
     return sum(loss) / len(loss), dev_accuracy
 
 
-def get_pseudo_labels(data_loader: DataLoader, model: MyModel):
-    """
-    获取伪标签
-    :param data: 数据加载器
-    :param model: 模型
-    :return: 伪标签列表
-    """
-    softmax = nn.Softmax(dim=-1)
+def get_pseudo_labels(dataset: Dataset, model: MyModel):
+    selected_images = []
+    selected_labels = []
+
+    data_loader = DataLoader(dataset=dataset, batch_size=32, shuffle=False)
+
     model.eval()
-    pseudo_labels = []
-    with torch.no_grad():
-        for inputs in data_loader:
-            image, _ = inputs
-            image = image.to(device)
-            logits = model(image)
-            probs = softmax(logits)
+    softmax = nn.Softmax(dim=-1)  # cross entropy中的softmax是在creterion()时进行的
+
+    for batch in tqdm(data_loader):
+        data, _ = batch
+
+        with torch.no_grad():
+            logits = model(data.to(device))
+        probabilities = softmax(logits)
+        confidence, pseudo_labels = torch.max(probabilities, dim=1)
+        mask = confidence > THRESHOLD  # 筛选置信度大于阈值的样本
+
+        if mask.any():
+            selected_images.append(data[mask])  # shape = [N_i, C, H, W]
+            selected_labels.append(pseudo_labels[mask])
+
+    model.train()
+    if selected_images:
+        # 每一组筛选出的图像的第0维不同（如第一组3张、第二组6张，在第0维将其合并为总的9张）
+        selected_images = torch.cat(selected_images, dim=0)
+        selected_labels = torch.cat(selected_labels, dim=0)
+        return dataProcess.PseudoLabelDataset(
+            images=selected_images,
+            labels=selected_labels,
+        )
+    else:
+        return None
 
 
 # def test(model: MyModel, test_data: DataLoader):

@@ -30,9 +30,11 @@ def create_dataloader(
 
 def create_dataset(data_root: str):
     # 以下为部分数据预处理：
-    train_transfrom = transforms.Compose(
+    train_transfrom = transforms.Compose(  # online augmentation
         [
-            transforms.Resize([128, 128]),
+            transforms.RandomResizedCrop(128, scale=(0.8, 1.0)),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(10),
             transforms.ToTensor(),
         ]
     )
@@ -72,18 +74,28 @@ def create_dataset(data_root: str):
     return train_dataset, valid_dataset, unlabeled_dataset, test_dataset
 
 
-# def create_dev_DataLoader(dataset: Dataset, batch_size: int, num_workers: int):
-#     """
-#     创建验证集的dataloader
-#     :param dataset: 验证集
-#     :param batch_size: 批大小
-#     :param num_workers: 工作线程数
-#     :return: 验证集的dataloader
-#     """
-#     return DataLoader(
-#         dataset,
-#         batch_size=batch_size,
-#         shuffle=False,
-#         num_workers=num_workers,
-#         drop_last=False,
-#     )
+class PseudoLabelDataset(Dataset):
+    def __init__(self, images, labels, transform=None):
+        self.images = images
+        self.labels = labels
+        if transform is None:
+            self.transform = transforms.transforms.Compose(  # online augmentation
+                [
+                    transforms.RandomResizedCrop(128, scale=(0.8, 1.0)),
+                    transforms.RandomHorizontalFlip(),
+                    transforms.RandomRotation(10),
+                    transforms.ToTensor(),
+                ]
+            )
+        else:
+            self.transform = transform
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        image = self.images[idx]
+        label = self.labels[idx]
+        if self.transform:
+            image = self.transform(image)
+        return image, label
