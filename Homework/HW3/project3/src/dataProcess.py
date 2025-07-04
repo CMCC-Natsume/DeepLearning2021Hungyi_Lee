@@ -3,17 +3,6 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision.datasets import DatasetFolder
 from torchvision.transforms import transforms as transforms
 
-VALIDATION_RATIO = 0.1  # 验证集比例
-
-
-"""
-数据集的划分
-1. 训练集: 
-2. 测试集: 
-3. 验证集: 
-4. 训练集和验证集的划分: 训练集的前90%作为训练集，后10%作为验证集
-"""
-
 
 def create_dataloader(
     dataset: Dataset, batch_size: int, num_workers: int, shuffle=False

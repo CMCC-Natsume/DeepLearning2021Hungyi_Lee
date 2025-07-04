@@ -21,7 +21,7 @@ def plot_learning_curve(train_loss, dev_loss, title=""):
     plt.title("Learning curve of {}".format(title))
     plt.legend()
     plt.savefig(
-        "Homework/HW2/project2/savedGraph/learning_curve.png", bbox_inches="tight"
+        "Homework/HW3/project3/savedGraph/learning_curve.png", bbox_inches="tight"
     )  # 保存学习曲线
     plt.close()  # 关闭图形，避免内存泄漏
 
