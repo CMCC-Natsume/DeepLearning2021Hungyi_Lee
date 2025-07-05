@@ -3,12 +3,14 @@ import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
+import torchvision
 
-MAX_EPOCH = 80
+MAX_EPOCH = 40
+SEMI_EPOCH = 10  # 半监督学习的epoch数
 BATCH_SIZE = 32
-LEARNING_RATE = 0.0005
+LEARNING_RATE = 0.0003
 WEIGHT_DECAY = 1e-5
-THRESHOLD = 0.65
+THRESHOLD = 0.70
 do_semi_supervised = True  # 是否进行半监督学习
 
 
@@ -19,6 +21,14 @@ else:
 
 
 class MyModel(nn.Module):
+    """
+    自定义模型
+    该模型为一个简单的卷积神经网络
+    包含3个卷积层和3个全连接层
+    输入为128x128的RGB图像
+    输出为11个类别的概率分布
+    """
+
     def __init__(self):
         super().__init__()
         self.cnn_layers = nn.Sequential(
@@ -75,49 +85,28 @@ def model_training(
     epoch_loss = []
     train_accuracy = 0.0
     dev_accuracy = 0.0
-    min_loss = 100
+    min_loss = 10000
     epoch = 0
     my_optimizer = optim.Adam(
         model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY
     )
-    scheduler = optim.lr_scheduler.StepLR(
-        my_optimizer, step_size=10, gamma=0.5
-    )  # 学习率衰减
+    scheduler = optim.lr_scheduler.StepLR(my_optimizer, step_size=20, gamma=0.5)
+    # 原始训练数据（不含伪标签）：
+    train_data = dataProcess.create_dataloader(
+        dataset=train_dataset,
+        batch_size=BATCH_SIZE,
+        num_workers=0,
+        shuffle=True,
+    )
 
     while epoch < MAX_EPOCH:
         # 半监督学习：获取伪标签/制造dataloader
-        if do_semi_supervised:
+        if do_semi_supervised and epoch > SEMI_EPOCH and epoch % 3 == 0:
             pseudo_label_dataset = get_pseudo_labels(
                 dataset=unlabeled_dataset, model=model
             )
-            if pseudo_label_dataset is not None:
-                print(
-                    f"Epoch {epoch + 1}: Pseudo-labels generated, size: {len(pseudo_label_dataset)}"
-                )
-                # 将伪标签数据集添加到训练集中
-                ConcatDataset = torch.utils.data.ConcatDataset(
-                    [train_dataset, pseudo_label_dataset]
-                )
-                train_data = dataProcess.create_dataloader(
-                    dataset=ConcatDataset,
-                    batch_size=BATCH_SIZE,
-                    num_workers=0,
-                    shuffle=True,
-                )
-            else:
-                print("制造伪标签失败，继续使用原训练集")
-                train_data = dataProcess.create_dataloader(
-                    dataset=train_dataset,
-                    batch_size=BATCH_SIZE,
-                    num_workers=0,
-                    shuffle=True,
-                )
-        else:
-            train_data = dataProcess.create_dataloader(
-                dataset=train_dataset,
-                batch_size=BATCH_SIZE,
-                num_workers=0,
-                shuffle=True,
+            train_data = generate_pseudo_labeled_data(
+                pseudo_label_dataset=pseudo_label_dataset, train_dataset=train_dataset
             )
 
         model.train()
@@ -148,6 +137,7 @@ def model_training(
         train_loss.append(sum(epoch_loss) / len(epoch_loss))
         train_accuracy /= len(train_data.dataset)
         # 验证集计算loss
+        print("Validating model...")
         val_loss, dev_accuracy = model_validation(model, dev_data)
         dev_loss.append(val_loss)
         # 留作Early stopping
@@ -159,7 +149,7 @@ def model_training(
 
         # 每个epoch结束后，打印当前的损失和准确率
         print(
-            f"Epoch: {epoch + 1}:\tTrain_loss: {train_loss[epoch]:3.6f}, Train Acc: {train_accuracy:3.6f}. | Dev_loss: {val_loss:3.6f}, Dev Acc: {dev_accuracy:3.6f}"
+            f"\n\nEpoch: {epoch + 1}:\tTrain_loss: {train_loss[epoch]:3.6f}, Train Acc: {train_accuracy:3.6f}. | Dev_loss: {val_loss:3.6f}, Dev Acc: {dev_accuracy:3.6f}"
         )
 
         epoch += 1
@@ -193,6 +183,7 @@ def get_pseudo_labels(dataset: Dataset, model: MyModel):
     """
     selected_images = []
     selected_labels = []
+    to_pil_image = torchvision.transforms.ToPILImage()
 
     data_loader = DataLoader(dataset=dataset, batch_size=BATCH_SIZE, shuffle=False)
 
@@ -201,21 +192,26 @@ def get_pseudo_labels(dataset: Dataset, model: MyModel):
 
     for batch in tqdm(data_loader):
         data, _ = batch
+        data = data.to(device)
 
         with torch.no_grad():
             logits = model(data.to(device))
         probabilities = softmax(logits)
         confidence, pseudo_labels = torch.max(probabilities, dim=1)
         mask = confidence > THRESHOLD  # 筛选置信度大于阈值的样本
+        mask = mask.to(device)
 
         if mask.any():
-            selected_images.append(data[mask])  # shape = [N_i, C, H, W]
-            selected_labels.append(pseudo_labels[mask])
+            for img in data[mask]:
+                img = to_pil_image(img)  # 将tensor转换为PIL图像
+                selected_images.append(img)
+            # selected_labels.append(pseudo_labels[mask])  # shape = [N_i, C, H, W]
+            selected_labels.append(pseudo_labels[mask])  # shape = [N_i]
 
     model.train()
     if selected_images:
         # 每一组筛选出的图像的第0维不同（如第一组3张、第二组6张，在第0维将其合并为总的9张）
-        selected_images = torch.cat(selected_images, dim=0)
+        # selected_images = torch.cat(selected_images, dim=0)
         selected_labels = torch.cat(selected_labels, dim=0)
         return dataProcess.PseudoLabelDataset(
             images=selected_images,
@@ -223,6 +219,33 @@ def get_pseudo_labels(dataset: Dataset, model: MyModel):
         )
     else:
         return None
+
+
+def generate_pseudo_labeled_data(pseudo_label_dataset: Dataset, train_dataset: Dataset):
+    if pseudo_label_dataset is not None:
+        print(
+            f"Pseudo-labels generated. len(Psedo_Label_Dataset) = {len(pseudo_label_dataset)}"
+        )
+        # 将伪标签数据集添加到训练集中
+        ConcatDataset = torch.utils.data.ConcatDataset(
+            [train_dataset, pseudo_label_dataset]
+        )
+        train_data = dataProcess.create_dataloader(
+            dataset=ConcatDataset,
+            batch_size=BATCH_SIZE,
+            num_workers=0,
+            shuffle=True,
+        )
+    else:
+        print("制造伪标签失败，继续使用原训练集")
+        train_data = dataProcess.create_dataloader(
+            ataset=train_dataset,
+            batch_size=BATCH_SIZE,
+            num_workers=0,
+            shuffle=True,
+        )
+
+    return train_data
 
 
 # def test(model: MyModel, test_data: DataLoader):

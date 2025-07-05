@@ -81,6 +81,7 @@ print(f"v_dataloader length:\t{len(V_dataloader)}\n")
 print(f"unlabeled_dataset length:\t{len(unlabeled_dataset)}")
 print(f"u_dataloader length:\t{len(U_dataloader)}\n")
 # 查看数据集的标签
-# for data, label in T_dataloader:
-#     print(f"\ndata: \n{data},\n\nlabel:\n{label}")
-#     break
+for data, label in T_dataloader:
+    print(f"\ndata: \n{data},\n\nlabel:\n{label}")
+    print(f"data type:\t{type(data)}, label dtype:\t{label.dtype}")
+    break
