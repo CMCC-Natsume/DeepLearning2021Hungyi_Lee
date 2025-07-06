@@ -85,3 +85,9 @@ for data, label in T_dataloader:
     print(f"\ndata: \n{data},\n\nlabel:\n{label}")
     print(f"data type:\t{type(data)}, label dtype:\t{label.dtype}")
     break
+
+# 查看是否有将traindataset的标签转换为tensor（原来为int）
+print("Checking label type of train_dataset:")
+for _, label in train_dataset:
+    print(f"Label type: {type(label)}, Label dtype: {label.dtype}")
+    break

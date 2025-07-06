@@ -5,12 +5,13 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 import torchvision
 
-MAX_EPOCH = 40
-SEMI_EPOCH = 10  # 半监督学习的epoch数
+MAX_EPOCH = 70
+SEMI_EPOCH = 5  # 半监督学习的epoch数
 BATCH_SIZE = 32
+NUM_WORKERS = 4
 LEARNING_RATE = 0.0003
-WEIGHT_DECAY = 1e-5
-THRESHOLD = 0.70
+WEIGHT_DECAY = 1e-4
+THRESHOLD = 0.80
 do_semi_supervised = True  # 是否进行半监督学习
 
 
@@ -32,24 +33,36 @@ class MyModel(nn.Module):
     def __init__(self):
         super().__init__()
         self.cnn_layers = nn.Sequential(
-            nn.Conv2d(3, 64, 3, 1, 1),
+            nn.Conv2d(3, 64, 3, 1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(2, 2, 0),
-            nn.Conv2d(64, 128, 3, 1, 1),
+            nn.Conv2d(64, 128, 3, 1),
             nn.BatchNorm2d(128),
             nn.ReLU(),
             nn.MaxPool2d(2, 2, 0),
-            nn.Conv2d(128, 256, 3, 1, 1),
+            nn.Conv2d(128, 256, 3, 1),
             nn.BatchNorm2d(256),
             nn.ReLU(),
-            nn.MaxPool2d(4, 4, 0),
+            nn.MaxPool2d(2, 2, 0),
+            nn.Conv2d(256, 512, 3, 1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2, 0),
+            nn.Conv2d(512, 1024, 3, 1),
+            nn.BatchNorm2d(1024),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2, 0),
         )
         self.fc_layers = nn.Sequential(
-            nn.Linear(256 * 8 * 8, 256),
+            nn.Linear(4096, 1024),
+            nn.BatchNorm1d(1024),
             nn.ReLU(),
-            nn.Linear(256, 256),
+            nn.Dropout(0.6),
+            nn.Linear(1024, 256),
+            nn.BatchNorm1d(256),
             nn.ReLU(),
+            nn.Dropout(0.4),
             nn.Linear(256, 11),  # 11个类别
         )
         self.criterion = nn.CrossEntropyLoss(reduction="mean")
@@ -90,21 +103,23 @@ def model_training(
     my_optimizer = optim.Adam(
         model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY
     )
-    scheduler = optim.lr_scheduler.StepLR(my_optimizer, step_size=20, gamma=0.5)
+    scheduler = optim.lr_scheduler.StepLR(my_optimizer, step_size=25, gamma=0.5)
     # 原始训练数据（不含伪标签）：
     train_data = dataProcess.create_dataloader(
         dataset=train_dataset,
         batch_size=BATCH_SIZE,
-        num_workers=0,
+        num_workers=NUM_WORKERS,
         shuffle=True,
     )
 
     while epoch < MAX_EPOCH:
-        # 半监督学习：获取伪标签/制造dataloader
+        # 半监督学习部分
         if do_semi_supervised and epoch > SEMI_EPOCH and epoch % 3 == 0:
-            pseudo_label_dataset = get_pseudo_labels(
+            print("Generating pseudo-labels...")
+            pseudo_label_dataset = get_pseudo_labels_dataset(
                 dataset=unlabeled_dataset, model=model
             )
+            # 生成伪标签dataloader
             train_data = generate_pseudo_labeled_data(
                 pseudo_label_dataset=pseudo_label_dataset, train_dataset=train_dataset
             )
@@ -114,24 +129,20 @@ def model_training(
         train_accuracy = 0.0
         dev_accuracy = 0.0
         epoch_loss.clear()
+        print("Training model...")
         for data, label in tqdm(train_data):
-            # 将数据和标签移动到设备上
             data, label = data.to(device), label.to(device)
             my_optimizer.zero_grad()
-            # 正向传播
             outputs = model(data)
-            # 计算损失（绘图）
             loss = model.calculate_loss(outputs, label)
             loss = loss.to(device)
             epoch_loss.append(loss.detach().item())
-            # 反向传播
             loss.backward()
             _, predicted_label = torch.max(outputs, 1)
             my_optimizer.step()
-            # Classification问题计算预测正确个数
+            # 预测正确个数
             train_accuracy += (predicted_label == label).sum().item()
 
-        # 学习率衰减
         scheduler.step()
         # 计算平均损失和准确率
         train_loss.append(sum(epoch_loss) / len(epoch_loss))
@@ -144,15 +155,15 @@ def model_training(
         if val_loss < min_loss:
             min_loss = val_loss
             print(
-                f"\n---NOW! in epoch: {epoch + 1}, the lowest loss(validation) is {val_loss}"
+                f"--NOW! in epoch: {epoch + 1}, the lowest loss(validation) is {val_loss}"
             )
 
-        # 每个epoch结束后，打印当前的损失和准确率
         print(
-            f"\n\nEpoch: {epoch + 1}:\tTrain_loss: {train_loss[epoch]:3.6f}, Train Acc: {train_accuracy:3.6f}. | Dev_loss: {val_loss:3.6f}, Dev Acc: {dev_accuracy:3.6f}"
+            f"Train_loss: {train_loss[epoch]:3.6f}, Train Acc: {train_accuracy:3.6f}. | Dev_loss: {val_loss:3.6f}, Dev Acc: {dev_accuracy:3.6f}"
         )
 
         epoch += 1
+        print(f"\n\nEpoch :\t{epoch}")
 
     return train_loss, dev_loss
 
@@ -163,7 +174,6 @@ def model_validation(model: MyModel, dev_data: DataLoader):
     dev_accuracy = 0.0
     # 计算验证集的损失
     for data, label in tqdm(dev_data):
-        # 将数据和标签移动到设备上
         data, label = data.to(device), label.to(device)
         with torch.no_grad():
             output = model(data)
@@ -175,7 +185,7 @@ def model_validation(model: MyModel, dev_data: DataLoader):
     return sum(loss) / len(loss), dev_accuracy
 
 
-def get_pseudo_labels(dataset: Dataset, model: MyModel):
+def get_pseudo_labels_dataset(dataset: Dataset, model: MyModel):
     """获取伪标签
     :param dataset: 数据集
     :param model: 模型
@@ -198,15 +208,16 @@ def get_pseudo_labels(dataset: Dataset, model: MyModel):
             logits = model(data.to(device))
         probabilities = softmax(logits)
         confidence, pseudo_labels = torch.max(probabilities, dim=1)
-        mask = confidence > THRESHOLD  # 筛选置信度大于阈值的样本
+        # 筛选置信度大于阈值的样本
+        mask = confidence > THRESHOLD
         mask = mask.to(device)
 
         if mask.any():
             for img in data[mask]:
-                img = to_pil_image(img)  # 将tensor转换为PIL图像
+                img = to_pil_image(img.cpu())
                 selected_images.append(img)
             # selected_labels.append(pseudo_labels[mask])  # shape = [N_i, C, H, W]
-            selected_labels.append(pseudo_labels[mask])  # shape = [N_i]
+            selected_labels.append(pseudo_labels[mask].cpu())
 
     model.train()
     if selected_images:
@@ -233,15 +244,16 @@ def generate_pseudo_labeled_data(pseudo_label_dataset: Dataset, train_dataset: D
         train_data = dataProcess.create_dataloader(
             dataset=ConcatDataset,
             batch_size=BATCH_SIZE,
-            num_workers=0,
+            num_workers=NUM_WORKERS,
             shuffle=True,
+            drop_last=True,
         )
     else:
         print("制造伪标签失败，继续使用原训练集")
         train_data = dataProcess.create_dataloader(
             ataset=train_dataset,
             batch_size=BATCH_SIZE,
-            num_workers=0,
+            num_workers=NUM_WORKERS,
             shuffle=True,
         )
 

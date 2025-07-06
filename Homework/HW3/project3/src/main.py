@@ -19,7 +19,7 @@ def same_seeds(seed):
 # 0.固定随机种子，确保结果可复现
 seed = 42069
 BATCH_SIZE = model.BATCH_SIZE
-NUM_WORKERS = 0
+NUM_WORKERS = model.NUM_WORKERS
 same_seeds(seed)
 
 
