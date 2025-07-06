@@ -1,9 +1,9 @@
 import dataProcess
 import torch
+import torchvision
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
-import torchvision
 
 MAX_EPOCH = 70
 SEMI_EPOCH = 5  # 半监督学习的epoch数
@@ -163,7 +163,8 @@ def model_training(
         )
 
         epoch += 1
-        print(f"\n\nEpoch :\t{epoch}")
+        if epoch != MAX_EPOCH:
+            print(f"\n\nEpoch :\t{epoch}")
 
     return train_loss, dev_loss
 
@@ -251,7 +252,7 @@ def generate_pseudo_labeled_data(pseudo_label_dataset: Dataset, train_dataset: D
     else:
         print("制造伪标签失败，继续使用原训练集")
         train_data = dataProcess.create_dataloader(
-            ataset=train_dataset,
+            dataset=train_dataset,
             batch_size=BATCH_SIZE,
             num_workers=NUM_WORKERS,
             shuffle=True,
