@@ -1,14 +1,13 @@
 import dataProcess
 import torch
-import torchvision
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-MAX_EPOCH = 70
+MAX_EPOCH = 35
 SEMI_EPOCH = 5  # 半监督学习的epoch数
 BATCH_SIZE = 32
-NUM_WORKERS = 4
+NUM_WORKERS = 8
 LEARNING_RATE = 0.0003
 WEIGHT_DECAY = 1e-4
 THRESHOLD = 0.80
@@ -98,8 +97,9 @@ def model_training(
     epoch_loss = []
     train_accuracy = 0.0
     dev_accuracy = 0.0
-    min_loss = 10000
+    min_dev_accuracy = 0
     epoch = 0
+    best_epoch = 0
     my_optimizer = optim.Adam(
         model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY
     )
@@ -152,20 +152,24 @@ def model_training(
         val_loss, dev_accuracy = model_validation(model, dev_data)
         dev_loss.append(val_loss)
         # 留作Early stopping
-        if val_loss < min_loss:
-            min_loss = val_loss
+        if dev_accuracy > min_dev_accuracy:
+            min_dev_accuracy = dev_accuracy
+            best_epoch = epoch
             print(
-                f"--NOW! in epoch: {epoch + 1}, the lowest loss(validation) is {val_loss}"
+                f"--NOW!! In epoch: {epoch + 1}, the lowest loss(valid): loss:{val_loss:3.6f} , accuracy:{dev_accuracy:3.6f}"
             )
 
         print(
             f"Train_loss: {train_loss[epoch]:3.6f}, Train Acc: {train_accuracy:3.6f}. | Dev_loss: {val_loss:3.6f}, Dev Acc: {dev_accuracy:3.6f}"
         )
-
         epoch += 1
         if epoch != MAX_EPOCH:
             print(f"\n\nEpoch :\t{epoch}")
 
+    # 训练结束
+    print(
+        f"\n\nTraining finished! Best epoch: {best_epoch + 1}, with lowest valloss_accuracy: {min_dev_accuracy:3.6f}"
+    )
     return train_loss, dev_loss
 
 
@@ -192,45 +196,53 @@ def get_pseudo_labels_dataset(dataset: Dataset, model: MyModel):
     :param model: 模型
     :return: PseudoLabelDataset
     """
-    selected_images = []
-    selected_labels = []
-    to_pil_image = torchvision.transforms.ToPILImage()
+    all_imgs = []
+    all_labels = []
 
-    data_loader = DataLoader(dataset=dataset, batch_size=BATCH_SIZE, shuffle=False)
+    data_loader = DataLoader(
+        dataset=dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        num_workers=NUM_WORKERS,
+        pin_memory=True,  # 加速数据加载
+    )
 
     model.eval()
     softmax = nn.Softmax(dim=-1)  # cross entropy中的softmax是在creterion()时进行的
 
-    for batch in tqdm(data_loader):
-        data, _ = batch
-        data = data.to(device)
-
-        with torch.no_grad():
+    with torch.no_grad():
+        for batch in tqdm(data_loader):
+            data, _ = batch
+            data = data.to(device)
             logits = model(data.to(device))
-        probabilities = softmax(logits)
-        confidence, pseudo_labels = torch.max(probabilities, dim=1)
-        # 筛选置信度大于阈值的样本
-        mask = confidence > THRESHOLD
-        mask = mask.to(device)
+            probabilities = softmax(logits)
+            confidence, pseudo_labels = torch.max(probabilities, dim=1)
+            # 筛选置信度大于阈值的样本
+            mask = confidence > THRESHOLD
+            mask = mask.to(device)
 
-        if mask.any():
-            for img in data[mask]:
-                img = to_pil_image(img.cpu())
-                selected_images.append(img)
-            # selected_labels.append(pseudo_labels[mask])  # shape = [N_i, C, H, W]
-            selected_labels.append(pseudo_labels[mask].cpu())
+            if mask.any():
+                # --这里一定要将数据重新放回cpu:
+                # model_training()中使用了num_workers>0的DataLoader
+                # 这会导致数据在GPU上，无法直接使用
+                # 需要将数据放回CPU
+                imgs = data[mask].cpu()  # [n_i, C, H, W]
+                labs = pseudo_labels[mask].cpu()  # [n_i]
+                # imgs = data[mask]
+                # labs = pseudo_labels[mask]
+                all_imgs.append(imgs)
+                all_labels.append(labs)
 
-    model.train()
-    if selected_images:
-        # 每一组筛选出的图像的第0维不同（如第一组3张、第二组6张，在第0维将其合并为总的9张）
-        # selected_images = torch.cat(selected_images, dim=0)
-        selected_labels = torch.cat(selected_labels, dim=0)
-        return dataProcess.PseudoLabelDataset(
-            images=selected_images,
-            labels=selected_labels,
-        )
-    else:
+    if not all_imgs:
         return None
+    imgs = torch.cat(all_imgs, dim=0)
+    labs = torch.cat(all_labels, dim=0)
+    model.train()
+
+    return dataProcess.PseudoLabelDataset(
+        images=imgs,
+        labels=labs,
+    )
 
 
 def generate_pseudo_labeled_data(pseudo_label_dataset: Dataset, train_dataset: Dataset):

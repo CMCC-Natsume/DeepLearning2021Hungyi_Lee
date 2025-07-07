@@ -75,19 +75,10 @@ def create_dataset(data_root: str):
 
 class PseudoLabelDataset(Dataset):
     def __init__(self, images, labels, transform=None):
+        # 为什么这里不放transforms呢？
+        # --因为最早unlabeledDataset已经进行过一次数据增强了
         self.images = images
         self.labels = labels
-        if transform is None:
-            self.transform = transforms.Compose(  # online augmentation
-                [
-                    transforms.RandomResizedCrop(128, scale=(0.8, 1.0)),
-                    transforms.RandomHorizontalFlip(),
-                    transforms.RandomRotation(10),
-                    transforms.ToTensor(),
-                ]
-            )
-        else:
-            self.transform = transform
 
     def __len__(self):
         return len(self.images)
@@ -95,6 +86,4 @@ class PseudoLabelDataset(Dataset):
     def __getitem__(self, idx):
         image = self.images[idx]
         label = self.labels[idx]
-        if self.transform:
-            image = self.transform(image)
         return image, label
