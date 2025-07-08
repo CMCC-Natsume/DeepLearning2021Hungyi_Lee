@@ -12,6 +12,8 @@ unlabeled_transfrom = transforms.Compose(
         transforms.RandomResizedCrop((128, 128)),
         transforms.RandomRotation(10),
         transforms.RandomHorizontalFlip(p=0.5),
+        transforms.ColorJitter(brightness=0.5),
+        transforms.RandomAffine(degrees=20, translate=(0.2, 0.2), scale=(0.7, 1.3)),
         transforms.ToTensor(),
     ]
 )
@@ -99,8 +101,8 @@ class PseudoLabelDataset(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
+        image = self.images[idx]
         if self.transform:
             image = self.transform(self.images[idx])
-        image = self.images[idx]
         label = self.labels[idx]
         return image, label

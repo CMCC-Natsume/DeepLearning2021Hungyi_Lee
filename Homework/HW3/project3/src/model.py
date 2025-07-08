@@ -6,15 +6,15 @@ from tqdm import tqdm
 from termcolor import colored
 
 # 训练参数表：
-MAX_EPOCH = 240
+MAX_EPOCH = 250
 BATCH_SIZE = 32
-SEMI_EPOCH = 109
+SEMI_EPOCH = 119
 LEARNING_RATE = 0.0006
-SCHEDULER_STEP = 125
+SCHEDULER_STEP = 170
 NUM_WORKERS = 8
 WEIGHT_DECAY = 2e-4
-THRESHOLD = 0.92
-PSEUDO_INTERVAL = 5
+THRESHOLD = 0.95
+PSEUDO_INTERVAL = 30
 do_semi_supervised = True
 
 
@@ -163,7 +163,7 @@ def model_training(
             best_epoch = epoch
             print(
                 colored(
-                    f"--NOW!! In epoch: {epoch + 1}, the lowest loss(valid): loss:{val_loss:3.6f} , accuracy:{dev_accuracy:3.6f}",
+                    f"--NOW!! In epoch: {epoch}, the lowest loss(valid): loss:{val_loss:3.6f} , accuracy:{dev_accuracy:3.6f}",
                     "yellow",
                 )
             )
