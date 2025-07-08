@@ -6,11 +6,11 @@ from tqdm import tqdm
 from termcolor import colored
 
 # 训练参数表：
-MAX_EPOCH = 210
+MAX_EPOCH = 240
 BATCH_SIZE = 32
-SEMI_EPOCH = 80
+SEMI_EPOCH = 109
 LEARNING_RATE = 0.0006
-SCHEDULER_STEP = 100
+SCHEDULER_STEP = 125
 NUM_WORKERS = 8
 WEIGHT_DECAY = 2e-4
 THRESHOLD = 0.92
@@ -211,7 +211,7 @@ def get_pseudo_labels_dataset(dataset: Dataset, model: MyModel):
     data_loader = DataLoader(
         dataset=dataset,
         batch_size=BATCH_SIZE,
-        shuffle=False,
+        shuffle=True,
         num_workers=NUM_WORKERS,
         pin_memory=True,  # 加速数据加载
     )
@@ -251,6 +251,7 @@ def get_pseudo_labels_dataset(dataset: Dataset, model: MyModel):
     return dataProcess.PseudoLabelDataset(
         images=imgs,
         labels=labs,
+        transform=dataProcess.unlabeled_transfrom,  # 使用未标记数据的增强方式
     )
 
 

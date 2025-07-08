@@ -5,6 +5,18 @@ from torchvision.transforms import transforms as transforms
 import torch
 
 
+unlabeled_transfrom = transforms.Compose(
+    # 对伪标签数据的特殊处理
+    [
+        transforms.ToPILImage(),
+        transforms.RandomResizedCrop((128, 128)),
+        transforms.RandomRotation(10),
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.ToTensor(),
+    ]
+)
+
+
 def create_dataloader(
     dataset: Dataset, batch_size: int, num_workers: int, shuffle=False, drop_last=False
 ):
@@ -30,14 +42,7 @@ def create_dataset(data_root: str):
             transforms.ToTensor(),
         ]
     )
-    unlabeled_transfrom = transforms.Compose(
-        [
-            transforms.Resize([128, 128]),
-            transforms.RandomRotation(10),
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.ToTensor(),
-        ]
-    )
+
     test_transfrom = transforms.Compose(
         [
             transforms.Resize([128, 128]),
@@ -66,7 +71,7 @@ def create_dataset(data_root: str):
         root=data_root + "training/unlabeled",
         loader=lambda x: Image.open(x),
         extensions=(".jpg",),
-        transform=unlabeled_transfrom,
+        transform=test_transfrom,  # 检验数据可靠性的时候不使用数据增强
         target_transform=target_tf,
     )
     test_dataset = DatasetFolder(
@@ -87,11 +92,15 @@ class PseudoLabelDataset(Dataset):
         # --因为最早unlabeledDataset已经进行过一次数据增强了
         self.images = images
         self.labels = labels
+        self.transform = transform
+        # 但是发现先加transforms会让train_acc大幅提高而valid_acc基本不变
 
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, idx):
+        if self.transform:
+            image = self.transform(self.images[idx])
         image = self.images[idx]
         label = self.labels[idx]
         return image, label
