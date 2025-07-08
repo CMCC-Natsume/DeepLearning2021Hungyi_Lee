@@ -3,6 +3,7 @@ import graphMaking
 import model
 import numpy as np
 import torch
+import time
 from torchvision.transforms import transforms as transforms
 
 
@@ -58,9 +59,15 @@ print(
 print("Start Training:")
 my_model = model.MyModel()
 my_model.to(device)
+start_time = time.time()  # 计时器
 train_loss, dev_loss = model.model_training(
     train_dataset, unlabeled_dataset, valid_dataloader, my_model
 )
+total_time = time.time() - start_time
+hours = int(total_time // 3600)
+minutes = int((total_time % 3600) // 60)
+seconds = int(total_time % 60)
+print(f"\nTotal training time: {hours:02d}:{minutes:02d}:{seconds:02d}")
 
 
 # 5.训练结束，结果绘制：

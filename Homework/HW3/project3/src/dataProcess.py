@@ -30,6 +30,14 @@ def create_dataset(data_root: str):
             transforms.ToTensor(),
         ]
     )
+    unlabeled_transfrom = transforms.Compose(
+        [
+            transforms.Resize([128, 128]),
+            transforms.RandomRotation(10),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.ToTensor(),
+        ]
+    )
     test_transfrom = transforms.Compose(
         [
             transforms.Resize([128, 128]),
@@ -58,7 +66,7 @@ def create_dataset(data_root: str):
         root=data_root + "training/unlabeled",
         loader=lambda x: Image.open(x),
         extensions=(".jpg",),
-        transform=train_transfrom,
+        transform=unlabeled_transfrom,
         target_transform=target_tf,
     )
     test_dataset = DatasetFolder(

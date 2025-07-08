@@ -3,15 +3,19 @@ import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
+from termcolor import colored
 
-MAX_EPOCH = 35
-SEMI_EPOCH = 5  # 半监督学习的epoch数
+# 训练参数表：
+MAX_EPOCH = 210
 BATCH_SIZE = 32
+SEMI_EPOCH = 80
+LEARNING_RATE = 0.0006
+SCHEDULER_STEP = 100
 NUM_WORKERS = 8
-LEARNING_RATE = 0.0003
-WEIGHT_DECAY = 1e-4
-THRESHOLD = 0.80
-do_semi_supervised = True  # 是否进行半监督学习
+WEIGHT_DECAY = 2e-4
+THRESHOLD = 0.92
+PSEUDO_INTERVAL = 5
+do_semi_supervised = True
 
 
 if torch.cuda.is_available():
@@ -62,7 +66,7 @@ class MyModel(nn.Module):
             nn.BatchNorm1d(256),
             nn.ReLU(),
             nn.Dropout(0.4),
-            nn.Linear(256, 11),  # 11个类别
+            nn.Linear(256, 11),
         )
         self.criterion = nn.CrossEntropyLoss(reduction="mean")
 
@@ -103,7 +107,9 @@ def model_training(
     my_optimizer = optim.Adam(
         model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY
     )
-    scheduler = optim.lr_scheduler.StepLR(my_optimizer, step_size=25, gamma=0.5)
+    scheduler = optim.lr_scheduler.StepLR(
+        my_optimizer, step_size=SCHEDULER_STEP, gamma=0.5
+    )
     # 原始训练数据（不含伪标签）：
     train_data = dataProcess.create_dataloader(
         dataset=train_dataset,
@@ -114,7 +120,7 @@ def model_training(
 
     while epoch < MAX_EPOCH:
         # 半监督学习部分
-        if do_semi_supervised and epoch > SEMI_EPOCH and epoch % 3 == 0:
+        if do_semi_supervised and epoch > SEMI_EPOCH and epoch % PSEUDO_INTERVAL == 0:
             print("Generating pseudo-labels...")
             pseudo_label_dataset = get_pseudo_labels_dataset(
                 dataset=unlabeled_dataset, model=model
@@ -156,7 +162,10 @@ def model_training(
             min_dev_accuracy = dev_accuracy
             best_epoch = epoch
             print(
-                f"--NOW!! In epoch: {epoch + 1}, the lowest loss(valid): loss:{val_loss:3.6f} , accuracy:{dev_accuracy:3.6f}"
+                colored(
+                    f"--NOW!! In epoch: {epoch + 1}, the lowest loss(valid): loss:{val_loss:3.6f} , accuracy:{dev_accuracy:3.6f}",
+                    "yellow",
+                )
             )
 
         print(
@@ -168,7 +177,7 @@ def model_training(
 
     # 训练结束
     print(
-        f"\n\nTraining finished! Best epoch: {best_epoch + 1}, with lowest valloss_accuracy: {min_dev_accuracy:3.6f}"
+        f"\n\nTraining finished! Best epoch: {best_epoch + 1}, with highest val_accuracy: {min_dev_accuracy:3.6f}"
     )
     return train_loss, dev_loss
 
