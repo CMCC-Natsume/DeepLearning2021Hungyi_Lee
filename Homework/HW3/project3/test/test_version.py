@@ -4,6 +4,7 @@ import pandas
 import torch
 import torchvision
 import tqdm
+import torchvision
 
 print("PyTorch 版本:", torch.__version__)
 print("CUDA 可用:", torch.cuda.is_available())

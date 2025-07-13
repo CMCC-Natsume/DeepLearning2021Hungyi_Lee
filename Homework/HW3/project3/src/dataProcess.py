@@ -1,15 +1,16 @@
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from torchvision.datasets import DatasetFolder
-from torchvision.transforms import transforms as transforms
+import torchvision.transforms as transforms
 import torch
+import model
 
 
 unlabeled_transfrom = transforms.Compose(
     # 对伪标签数据的特殊处理
     [
         transforms.ToPILImage(),
-        transforms.RandomResizedCrop((128, 128)),
+        transforms.RandomResizedCrop((128, 128), scale=(0.8, 1.0)),
         transforms.RandomRotation(10),
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.ColorJitter(brightness=0.5),
@@ -50,9 +51,10 @@ def create_dataset(data_root: str):
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.ColorJitter(brightness=0.5),
             transforms.RandomGrayscale(p=0.1),
+            transforms.GaussianBlur(kernel_size=(3, 3), sigma=(0.1, 2.0)),
             transforms.RandomAffine(degrees=20, translate=(0.2, 0.2), scale=(0.7, 1.3)),
             transforms.ToTensor(),
-            # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # 不知道为什么不能使用
+            # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # 不知道为什么不能使用/imagenet的均值和方差
         ]
     )
 
@@ -73,24 +75,36 @@ def create_dataset(data_root: str):
         transform=train_transfrom,
         target_transform=target_tf,
     )
-    valid_dataset = DatasetFolder(
-        root=data_root + "validation",
-        loader=lambda x: Image.open(x),
-        extensions=(".jpg",),
-        transform=test_transfrom,
-        target_transform=target_tf,
-    )
-    another_valid_dataset = DatasetFolder(
-        root=data_root + "validation",
-        loader=lambda x: Image.open(x),
-        extensions=(".jpg",),
-        transform=stable_transfrom,  # 验证集的另一种数据增强方式
-        target_transform=target_tf,
-    )
-    ConcatValidDataset = torch.utils.data.ConcatDataset(
-        [valid_dataset, another_valid_dataset]
-    )
-    valid_dataset = ConcatValidDataset  # 将两种验证集数据增强方式合并
+    if model.add_valid_data_into_training:
+        # 确认完其余要素之后使用所有数据训练现有模型
+        valid_dataset = DatasetFolder(
+            root=data_root + "validation",
+            loader=lambda x: Image.open(x),
+            extensions=(".jpg",),
+            transform=train_transfrom,
+            target_transform=target_tf,
+        )
+    else:
+        # 训练时不使用transforms
+        valid_dataset = DatasetFolder(
+            root=data_root + "validation",
+            loader=lambda x: Image.open(x),
+            extensions=(".jpg",),
+            transform=test_transfrom,
+            target_transform=target_tf,
+        )
+        another_valid_dataset = DatasetFolder(
+            root=data_root + "validation",
+            loader=lambda x: Image.open(x),
+            extensions=(".jpg",),
+            transform=stable_transfrom,  # 验证集的另一种数据增强方式
+            target_transform=target_tf,
+        )
+        ConcatValidDataset = torch.utils.data.ConcatDataset(
+            [valid_dataset, another_valid_dataset]
+        )
+        valid_dataset = ConcatValidDataset  # 将两种验证集数据增强方式合并
+
     unlabeled_dataset = DatasetFolder(
         root=data_root + "training/unlabeled",
         loader=lambda x: Image.open(x),

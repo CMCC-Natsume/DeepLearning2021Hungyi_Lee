@@ -1,22 +1,24 @@
+import os
 import dataProcess
 import torch
+from termcolor import colored
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
-import os
-from termcolor import colored
 
 # 训练参数表：
-MAX_EPOCH = 200
+MAX_EPOCH = 240
 BATCH_SIZE = 32
-SEMI_EPOCH = 110
+SEMI_EPOCH = 109
 LEARNING_RATE = 0.0006
-SCHEDULER_STEP = 125
+SCHEDULER_START = 150
+SCHEDULER_STEP = 50
 NUM_WORKERS = 8
 WEIGHT_DECAY = 2e-4
 THRESHOLD = 0.92
 PSEUDO_INTERVAL = 20
 do_semi_supervised = True
+add_valid_data_into_training = False  # 是否将验证集数据加入训练集(Last Run)
 
 
 if torch.cuda.is_available():
@@ -40,24 +42,29 @@ class MyModel(nn.Module):
             nn.Conv2d(3, 64, 3, 1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            # nn.Dropout2d(0.2),
+            nn.Dropout2d(0.2),
+            # ---*---
             nn.MaxPool2d(2, 2, 0),
             nn.Conv2d(64, 128, 3, 1),
             nn.BatchNorm2d(128),
             nn.ReLU(),
             # nn.Dropout2d(0.2),
+            # ---*---
             nn.MaxPool2d(2, 2, 0),
             nn.Conv2d(128, 256, 3, 1),
             nn.BatchNorm2d(256),
             nn.ReLU(),
+            # ---*---
             nn.MaxPool2d(2, 2, 0),
             nn.Conv2d(256, 512, 3, 1),
             nn.BatchNorm2d(512),
             nn.ReLU(),
+            # ---*---
             nn.MaxPool2d(2, 2, 0),
             nn.Conv2d(512, 1024, 3, 1),
             nn.BatchNorm2d(1024),
             nn.ReLU(),
+            # ---*---
             nn.MaxPool2d(2, 2, 0),
         )
         self.fc_layers = nn.Sequential(
@@ -137,6 +144,9 @@ def model_training(
                 pseudo_label_dataset=pseudo_label_dataset, train_dataset=train_dataset
             )
 
+        if add_valid_data_into_training:
+            train_data = add_valid_data(train_dataset, dev_data.dataset)
+
         model.train()
         # 重置上一个epoch的损失和准确率
         train_accuracy = 0.0
@@ -156,7 +166,8 @@ def model_training(
             # 预测正确个数
             train_accuracy += (predicted_label == label).sum().item()
 
-        scheduler.step()
+        if epoch > SCHEDULER_START:
+            scheduler.step()
         # 计算平均损失和准确率
         train_loss.append(sum(epoch_loss) / len(epoch_loss))
         train_accuracy /= len(train_data.dataset)
@@ -171,7 +182,7 @@ def model_training(
             torch.save(model.state_dict(), best_model_path)
             print(
                 colored(
-                    f"--NOW!! In epoch: {epoch}, the lowest loss(valid): loss:{val_loss:3.6f} , accuracy:{dev_accuracy:3.6f}",
+                    f"--NOW!! In epoch: {epoch}, the lowest loss(valid): loss{val_loss:3.6f} , accuracy:{dev_accuracy:3.6f}",
                     "yellow",
                 )
             )
@@ -288,6 +299,25 @@ def generate_pseudo_labeled_data(pseudo_label_dataset: Dataset, train_dataset: D
             shuffle=True,
         )
 
+    return train_data
+
+
+def add_valid_data(train_dataset: Dataset, valid_dataset: Dataset):
+    """
+    将验证集数据添加到训练集中
+    :param train_dataset: 训练集
+    :param valid_dataset: 验证集
+    :return: 合并后的训练集
+    """
+    print("Adding validation data to training set...")
+    ConcatDataset = torch.utils.data.ConcatDataset([train_dataset, valid_dataset])
+    train_data = dataProcess.create_dataloader(
+        dataset=ConcatDataset,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS,
+        shuffle=True,
+        drop_last=True,
+    )
     return train_data
 
 
