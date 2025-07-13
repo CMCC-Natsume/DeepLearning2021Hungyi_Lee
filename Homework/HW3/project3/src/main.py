@@ -72,3 +72,11 @@ print(f"\nTotal training time: {hours:02d}:{minutes:02d}:{seconds:02d}")
 
 # 5.训练结束，结果绘制：
 graphMaking.plot_learning_curve(train_loss, dev_loss, "ModelOfFood11")
+
+
+# 6.测试集结果
+print("Start Testing:")
+predictions = model.test(model=my_model, test_data=test_dataloader)
+model.save_predictions_to_csv(
+    predictions=predictions, filepath="Homework/HW3/submission/submission.csv"
+)

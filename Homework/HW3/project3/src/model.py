@@ -3,18 +3,19 @@ import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
+import os
 from termcolor import colored
 
 # 训练参数表：
-MAX_EPOCH = 250
+MAX_EPOCH = 200
 BATCH_SIZE = 32
-SEMI_EPOCH = 119
+SEMI_EPOCH = 110
 LEARNING_RATE = 0.0006
-SCHEDULER_STEP = 170
+SCHEDULER_STEP = 125
 NUM_WORKERS = 8
 WEIGHT_DECAY = 2e-4
-THRESHOLD = 0.95
-PSEUDO_INTERVAL = 30
+THRESHOLD = 0.92
+PSEUDO_INTERVAL = 20
 do_semi_supervised = True
 
 
@@ -39,10 +40,12 @@ class MyModel(nn.Module):
             nn.Conv2d(3, 64, 3, 1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
+            # nn.Dropout2d(0.2),
             nn.MaxPool2d(2, 2, 0),
             nn.Conv2d(64, 128, 3, 1),
             nn.BatchNorm2d(128),
             nn.ReLU(),
+            # nn.Dropout2d(0.2),
             nn.MaxPool2d(2, 2, 0),
             nn.Conv2d(128, 256, 3, 1),
             nn.BatchNorm2d(256),
@@ -101,7 +104,7 @@ def model_training(
     epoch_loss = []
     train_accuracy = 0.0
     dev_accuracy = 0.0
-    min_dev_accuracy = 0
+    max_dev_accuracy = 0
     epoch = 0
     best_epoch = 0
     my_optimizer = optim.Adam(
@@ -117,6 +120,10 @@ def model_training(
         num_workers=NUM_WORKERS,
         shuffle=True,
     )
+    # 定义保存模型的路径
+    save_dir = "Homework/HW3/project3/saved_models"
+    os.makedirs(save_dir, exist_ok=True)  # 创建目录如果不存在
+    best_model_path = os.path.join(save_dir, "best_model.pth")
 
     while epoch < MAX_EPOCH:
         # 半监督学习部分
@@ -158,9 +165,10 @@ def model_training(
         val_loss, dev_accuracy = model_validation(model, dev_data)
         dev_loss.append(val_loss)
         # 留作Early stopping
-        if dev_accuracy > min_dev_accuracy:
-            min_dev_accuracy = dev_accuracy
+        if dev_accuracy > max_dev_accuracy:
+            max_dev_accuracy = dev_accuracy
             best_epoch = epoch
+            torch.save(model.state_dict(), best_model_path)
             print(
                 colored(
                     f"--NOW!! In epoch: {epoch}, the lowest loss(valid): loss:{val_loss:3.6f} , accuracy:{dev_accuracy:3.6f}",
@@ -177,7 +185,7 @@ def model_training(
 
     # 训练结束
     print(
-        f"\n\nTraining finished! Best epoch: {best_epoch + 1}, with highest val_accuracy: {min_dev_accuracy:3.6f}"
+        f"\n\nTraining finished! Best epoch: {best_epoch + 1}, with highest val_accuracy: {max_dev_accuracy:3.6f}"
     )
     return train_loss, dev_loss
 
@@ -283,16 +291,38 @@ def generate_pseudo_labeled_data(pseudo_label_dataset: Dataset, train_dataset: D
     return train_data
 
 
-# def test(model: MyModel, test_data: DataLoader):
-#     """
-#     标记
-#     :param model:
-#     :param test_data:
-#     :return:
-#     """
-#     model.eval()
-#     loss = []
-#     for data, label in test_data:
-#         output = model(data)
-#         loss.append(model.calculate_loss(output, label))
-#     return sum(loss) / len(loss)
+def test(model: MyModel, test_data: DataLoader):
+    """
+    Predict results for the entire test set.
+    :param model: The trained model.
+    :param test_data: DataLoader for the test set.
+    :return: A list of predicted class IDs.
+    """
+    model.eval()  # Set the model to evaluation mode
+    predictions = []
+    print("Making predictions on the test set...")
+    with torch.no_grad():  # Disable gradient calculation
+        for data, _ in tqdm(test_data):  # We don't need labels for prediction
+            data = data.to(device)
+            outputs = model(data)
+            _, predicted_label = torch.max(outputs, 1)
+            predictions.extend(predicted_label.cpu().numpy().tolist())
+    print("Finished making predictions.")
+    return predictions
+
+
+def save_predictions_to_csv(predictions: list, filepath: str = "predict.csv"):
+    """
+    Save the predicted results to a CSV file at a specified path.
+    :param predictions: A list of predicted class IDs.
+    :param filepath: Full path (including filename) to save the CSV file.
+    """
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+
+    print(f"Saving predictions to {filepath}...")
+    with open(filepath, "w") as f:
+        f.write("Id,Category\n")
+        for i, pred in enumerate(predictions):
+            f.write(f"{i},{pred}\n")
+    print(f"Predictions saved to {filepath}.")

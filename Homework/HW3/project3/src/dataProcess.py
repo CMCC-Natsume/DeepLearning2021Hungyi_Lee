@@ -15,12 +15,21 @@ unlabeled_transfrom = transforms.Compose(
         transforms.ColorJitter(brightness=0.5),
         transforms.RandomAffine(degrees=20, translate=(0.2, 0.2), scale=(0.7, 1.3)),
         transforms.ToTensor(),
+        # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # 不知道为什么不能使用
+    ]
+)
+stable_transfrom = transforms.Compose(
+    # 对验证数据的特殊处理
+    [
+        transforms.Resize([128, 128]),
+        transforms.RandomHorizontalFlip(p=1),
+        transforms.ToTensor(),
     ]
 )
 
 
 def create_dataloader(
-    dataset: Dataset, batch_size: int, num_workers: int, shuffle=False, drop_last=False
+    dataset: Dataset, batch_size: int, num_workers: int, shuffle=True, drop_last=False
 ):
     dataloader = DataLoader(
         dataset,
@@ -36,12 +45,14 @@ def create_dataset(data_root: str):
     # 以下为部分数据预处理：
     train_transfrom = transforms.Compose(  # online augmentation
         [
-            transforms.RandomResizedCrop((128, 128)),
-            transforms.RandomRotation(10),
+            transforms.RandomResizedCrop((128, 128), scale=(0.8, 1.0)),
+            transforms.RandomRotation(15),
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.ColorJitter(brightness=0.5),
+            transforms.RandomGrayscale(p=0.1),
             transforms.RandomAffine(degrees=20, translate=(0.2, 0.2), scale=(0.7, 1.3)),
             transforms.ToTensor(),
+            # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # 不知道为什么不能使用
         ]
     )
 
@@ -69,6 +80,17 @@ def create_dataset(data_root: str):
         transform=test_transfrom,
         target_transform=target_tf,
     )
+    another_valid_dataset = DatasetFolder(
+        root=data_root + "validation",
+        loader=lambda x: Image.open(x),
+        extensions=(".jpg",),
+        transform=stable_transfrom,  # 验证集的另一种数据增强方式
+        target_transform=target_tf,
+    )
+    ConcatValidDataset = torch.utils.data.ConcatDataset(
+        [valid_dataset, another_valid_dataset]
+    )
+    valid_dataset = ConcatValidDataset  # 将两种验证集数据增强方式合并
     unlabeled_dataset = DatasetFolder(
         root=data_root + "training/unlabeled",
         loader=lambda x: Image.open(x),

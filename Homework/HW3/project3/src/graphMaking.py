@@ -20,6 +20,7 @@ def plot_learning_curve(train_loss, dev_loss, title=""):
     plt.ylabel("CrossEntropyLoss")
     plt.title("Learning curve of {}".format(title))
     plt.legend()
+    plt.grid(True)  # Add grid lines here
     plt.savefig(
         "Homework/HW3/project3/savedGraph/learning_curve.png", bbox_inches="tight"
     )  # 保存学习曲线
@@ -46,5 +47,6 @@ def plot_pred(dv_set, model, device, lim=35.0, preds=None, targets=None):
     plt.xlabel("ground truth value")
     plt.ylabel("predicted value")
     plt.title("Ground Truth v.s. Prediction")
+    plt.grid(True)  # Add grid lines here
     plt.savefig("prediction_scatter.png", bbox_inches="tight")  # 保存预测散点图
     plt.close()  # 关闭图形
