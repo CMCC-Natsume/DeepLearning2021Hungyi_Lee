@@ -153,7 +153,7 @@ def model_training(
         dev_accuracy = 0.0
         epoch_loss.clear()
         print("Training model...")
-        for data, label in tqdm(train_data):
+        for data, label in tqdm(train_data, ncols=120):
             data, label = data.to(device), label.to(device)
             my_optimizer.zero_grad()
             outputs = model(data)
@@ -206,7 +206,7 @@ def model_validation(model: MyModel, dev_data: DataLoader):
     loss = []
     dev_accuracy = 0.0
     # 计算验证集的损失
-    for data, label in tqdm(dev_data):
+    for data, label in tqdm(dev_data, ncols=120):
         data, label = data.to(device), label.to(device)
         with torch.no_grad():
             output = model(data)
