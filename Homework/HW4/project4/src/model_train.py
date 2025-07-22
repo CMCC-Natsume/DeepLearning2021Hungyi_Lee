@@ -7,19 +7,24 @@ from torch import optim
 from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from pathlib import Path
+import data_process
+import json
+import csv
 
 # 参数表
 TRAIN_RATIO = 0.9
 BATCH_SIZE = 32
-NUM_WORKERS = 4
+NUM_WORKERS = 8
 WARMUP_STEPS = 1000
 VALID_STEPS = 2000
 SAVED_STEPS = 10000
-MAX_STEP = 100000
-LEARNING_RATE = 0.002
+MAX_STEP = 90000
+LEARNING_RATE = 0.001
 WEIGHT_DECAY = 1e-4
 add_valid_data_into_training = False
 save_dir = "Homework/HW4/project4/saved_models"
+output_path = "predict.csv"
 NCOL = 90
 
 if torch.cuda.is_available():
@@ -54,11 +59,11 @@ def model_training(
         my_optimizer, num_warmup_steps=WARMUP_STEPS, num_training_steps=MAX_STEP
     )
     train_iterator = iter(train_data)
+    model.to(device)
 
     # 定义保存模型的路径
     os.makedirs(save_dir, exist_ok=True)  # 创建目录如果不存在
     best_model_path = os.path.join(save_dir, "best_model.pth")
-
     pbar = tqdm(total=VALID_STEPS, ncols=NCOL, desc="Train", unit="  step")
 
     # 本次训练因为使用特别的调度器，因此以step为循环控制变量
@@ -120,6 +125,7 @@ def model_training(
         # 留作Early stopping
 
     pbar.close()
+    print(colored(f"\nThe highest valid accuracy is {max_dev_accuracy}", "blue"))
     return train_loss, dev_loss, total_train_acc, total_dev_acc
 
 
@@ -182,7 +188,7 @@ def model_validation(model: model.MyModel, dev_data: DataLoader):
     return sum(loss) / len(loss), dev_accuracy
 
 
-def test(model: model.MyModel, test_data: DataLoader):
+def test(model: model.MyModel, data_dir: str):
     """
     Predict results for the entire test set.
     :param model: The trained model.
@@ -190,30 +196,30 @@ def test(model: model.MyModel, test_data: DataLoader):
     :return: A list of predicted class IDs.
     """
     model.eval()  # Set the model to evaluation mode
-    predictions = []
     print("Making predictions on the test set...")
-    with torch.no_grad():  # Disable gradient calculation
-        for data, _ in tqdm(test_data):  # We don't need labels for prediction
-            data = data.to(device)
-            outputs = model(data)
-            _, predicted_label = torch.max(outputs, 1)
-            predictions.extend(predicted_label.cpu().numpy().tolist())
-    print("Finished making predictions.")
-    return predictions
+    mapping_path = Path(data_dir) / "mapping.json"
+    mapping = json.load(mapping_path.open())
 
+    dataset = data_process.InferenceDataset(data_dir)
+    test_data = DataLoader(
+        dataset,
+        batch_size=1,
+        shuffle=False,
+        drop_last=False,
+        num_workers=8,
+        collate_fn=data_process.inference_collate_batch,
+    )
 
-def save_predictions_to_csv(predictions: list, filepath: str = "predict.csv"):
-    """
-    Save the predicted results to a CSV file at a specified path.
-    :param predictions: A list of predicted class IDs.
-    :param filepath: Full path (including filename) to save the CSV file.
-    """
-    # 确认目录存在
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
-
-    print(f"Saving predictions to {filepath}...")
-    with open(filepath, "w") as f:
-        f.write("Id,Category\n")
-        for i, pred in enumerate(predictions):
-            f.write(f"{i},{pred}\n")
-    print(f"Predictions saved to {filepath}.")
+    speaker_num = len(mapping["id2speaker"])
+    model.eval()
+    results = [["Id", "Category"]]
+    for feat_paths, mels in tqdm(test_data, ncols=NCOL):
+        with torch.no_grad():
+            mels = mels.to(device)
+            outs = model(mels)
+            preds = outs.argmax(1).cpu().numpy()
+            for feat_path, pred in zip(feat_paths, preds):
+                results.append([feat_path, mapping["id2speaker"][str(pred)]])
+    with open("Homework/HW4/submission/submission.csv", "w", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerows(results)

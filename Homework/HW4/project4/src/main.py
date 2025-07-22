@@ -44,15 +44,12 @@ print("Starting creating dataloader")
 train_dataloader, valid_dataloader, speaker_num = data_process.create_dataloader(
     data_root, BATCH_SIZE, NUM_WORKERS, shuffle=True
 )
-# test_dataloader = data_process.create_dataloader(
-#     data_root, BATCH_SIZE, NUM_WORKERS, shuffle=False
-# )
 print("Finishing creating dataLoaders!\n")
 
 
 # 4.训练开始
 print("Start Training:")
-my_model = model.MyModel()
+my_model = model.MyModel(n_spks=speaker_num)
 my_model.to(device)
 start_time = time.time()  # 计时器
 train_loss, dev_loss, train_acc, dev_acc = model_train.model_training(
@@ -62,7 +59,7 @@ total_time = time.time() - start_time
 hours = int(total_time // 3600)
 minutes = int((total_time % 3600) // 60)
 seconds = int(total_time % 60)
-print(f"\nTotal training time: {hours:02d}:{minutes:02d}:{seconds:02d}")
+print(f"\nTotal training time: {hours:02d}:{minutes:02d}:{seconds:02d}\n\n")
 
 
 # 5.训练结束，结果绘制：
@@ -71,8 +68,5 @@ graph_making.plot_accuracy_curve(train_acc, dev_acc, "ModelOfVoxceleb")
 
 
 # 6.测试集结果
-# print("Start Testing:")
-# predictions = model_train.test(model=my_model, test_data=test_dataloader)
-# model_train.save_predictions_to_csv(
-#     predictions=predictions, filepath="Homework/HW4/submission/submission.csv"
-# )
+print("Start Testing:")
+predictions = model_train.test(model=my_model, data_dir=data_root)

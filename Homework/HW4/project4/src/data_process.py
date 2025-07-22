@@ -46,6 +46,7 @@ class CustomDataset(Dataset):
         else:
             mel = torch.FloatTensor(mel)
         speaker = torch.FloatTensor([speaker]).long()
+        # print(f"len(mel): {len(mel)}, \nspeaker: {speaker}\n\n")
         return mel, speaker
 
     def get_speaker_number(self):
@@ -92,6 +93,7 @@ def create_dataset(data_root: str):
     trainlen = int(TRAIN_RATIO * len(my_dataset))
     lengths = [trainlen, len(my_dataset) - trainlen]
     speaker_num = my_dataset.get_speaker_number()
+    print(f"\nspeaker_num = {speaker_num}\n")
 
     train_dataset, valid_dataset = random_split(my_dataset, lengths)
     return train_dataset, valid_dataset, speaker_num
