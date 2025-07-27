@@ -54,6 +54,7 @@ def model_training(
     train_accuracy = 0.0
     dev_accuracy = 0.0
     max_dev_accuracy = -1.0
+
     my_optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE)
     scheduler = get_cosine_schedule_with_warmup(
         my_optimizer, num_warmup_steps=WARMUP_STEPS, num_training_steps=MAX_STEP
