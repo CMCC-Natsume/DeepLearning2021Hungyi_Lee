@@ -44,7 +44,7 @@ print("Starting creating dataloader")
 train_dataloader, valid_dataloader, speaker_num = data_process.create_dataloader(
     data_root, BATCH_SIZE, NUM_WORKERS, shuffle=True
 )
-print("Finishing creating dataLoaders!\n")
+print("Finishing creating dataLoaders!\n\n")
 
 
 # 4.训练开始
