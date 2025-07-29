@@ -5,23 +5,49 @@ from matplotlib import pyplot as plt
 matplotlib.use("Agg")  # 强制使用非交互式后端(WSL中使用时需要添加本行)
 
 
-def plot_learning_curve(train_loss, dev_loss, title=""):
-    total_steps = len(train_loss)
-    x_1 = range(total_steps)
-    x_2 = x_1[:: total_steps // len(dev_loss)]
+def plot_learning_curve(
+    train_loss,
+    dev_loss,
+    title="",
+    root="Homework/HW1/project1/saved_graph/learning_curve.png",
+    focus_portion=0.25,  # New parameter to define focus
+):
+    train_loss = [
+        t.cpu().item() if isinstance(t, torch.Tensor) else t for t in train_loss
+    ]
+    dev_loss = [t.cpu().item() if isinstance(t, torch.Tensor) else t for t in dev_loss]
+
+    # Calculate focus index
+    num_epochs = len(train_loss)
+    start_focus_idx = int(num_epochs * (1 - focus_portion))
+
+    # Get losses for the focused portion
+    focused_train_loss = train_loss[start_focus_idx:]
+    focused_dev_loss = dev_loss[start_focus_idx:]
+
+    # Calculate min/max for the focused portion, ensuring it's not empty
+    if focused_train_loss and focused_dev_loss:
+        min_loss = min(min(focused_train_loss), min(focused_dev_loss)) - 0.1
+        max_loss = max(max(focused_train_loss), max(focused_dev_loss)) + 0.1
+    else:  # Fallback to original calculation if focus portion is too small
+        min_loss = min(min(train_loss), min(dev_loss)) - 0.1
+        max_loss = max(max(train_loss), max(dev_loss)) + 0.1
+
     plt.figure(1, figsize=(6, 4))
-    plt.plot(x_1, train_loss, c="tab:red", label="train")
-    plt.plot(x_2, dev_loss, c="tab:cyan", label="dev")
-    plt.ylim(0.0, 5.0)
-    plt.xlabel("Training steps")
-    plt.ylabel("MSE loss")
+    plt.plot(range(len(train_loss)), train_loss, c="tab:red", label="train")
+    plt.plot(range(len(dev_loss)), dev_loss, c="tab:cyan", label="dev")
+    plt.ylim(min_loss, max_loss)  # Apply focused limits
+    plt.xlabel("Epoch")
+    plt.ylabel("MSE-Loss")
     plt.title("Learning curve of {}".format(title))
     plt.legend()
-    plt.savefig("learning_curve.png", bbox_inches="tight")  # 保存学习曲线
-    plt.close()  # 关闭图形，避免内存泄漏
+    plt.grid(True)
+    plt.savefig(root, bbox_inches="tight")
+    plt.close()
 
 
 def plot_pred(dv_set, model, device, lim=35.0, preds=None, targets=None):
+    # 此函数与损失曲线无关，保持不变，但为了完整性一并列出
     if preds is None or targets is None:
         model.eval()
         preds, targets = [], []
@@ -38,8 +64,8 @@ def plot_pred(dv_set, model, device, lim=35.0, preds=None, targets=None):
     plt.plot([-0.2, lim], [-0.2, lim], c="b")
     plt.xlim(-0.2, lim)
     plt.ylim(-0.2, lim)
-    plt.xlabel("ground truth value")
-    plt.ylabel("predicted value")
-    plt.title("Ground Truth v.s. Prediction")
+    plt.xlabel("Ground Truth Value")  # 标签更清晰
+    plt.ylabel("Predicted Value")  # 标签更清晰
+    plt.title("Ground Truth vs. Prediction")  # 标题更清晰
     plt.savefig("prediction_scatter.png", bbox_inches="tight")  # 保存预测散点图
     plt.close()  # 关闭图形

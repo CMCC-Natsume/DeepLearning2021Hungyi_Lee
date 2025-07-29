@@ -80,11 +80,13 @@ class MyDataset(Dataset):
         return len(self.data)
 
 
-def make_dataloader(dataset: Dataset, batch_size: int, num_workers: int):
+def make_dataloader(
+    dataset: Dataset, batch_size: int, num_workers: int, shuffle: bool = True
+):
     dataloader = DataLoader(
         dataset,
         batch_size=batch_size,
-        shuffle=False,
+        shuffle=shuffle,
         num_workers=num_workers,
         drop_last=False,
     )
