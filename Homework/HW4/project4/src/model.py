@@ -11,12 +11,12 @@ class MyModel(nn.Module):
     输出为600个类别的概率分布
     """
 
-    def __init__(self, d_model=160, n_spks=600, dropout=0.1, nhead=1, kernel_size=3):
+    def __init__(self, d_model=160, n_spks=600, dropout=0.1, nhead=8, kernel_size=3):
         super().__init__()
         # Project the dimension of features from that of input into d_model.
         self.prenet = nn.Linear(40, d_model)
         self.encoder_layer = nn.TransformerEncoderLayer(
-            d_model=d_model, dim_feedforward=256, nhead=1
+            d_model=d_model, dim_feedforward=256, nhead=8
         )  # 留作对照，未放入模型中
 
         self.conformer = Conformer(
@@ -42,9 +42,7 @@ class MyModel(nn.Module):
         """
         # out: (batch size, length, d_model)
         out = self.prenet(x)
-        # out: (length, batch size, d_model)
         out = self.conformer(out)
-        # out: (batch size, length, d_model)
 
         # stats = out.mean(dim=1)  # 原模型的平均池化
         stats, _ = self.attention_pooling(out)
