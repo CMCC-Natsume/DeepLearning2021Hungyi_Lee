@@ -2,11 +2,6 @@ import numpy
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-# import csv
-
-ROUND = 0
-VALIDATION_RATIO = 0.1  # 验证集比例
-
 
 """
 数据集的划分
@@ -18,50 +13,19 @@ VALIDATION_RATIO = 0.1  # 验证集比例
 
 
 class MyDataset(Dataset):
-    def __init__(self, path: str, mode: str, inputLabel: str = ""):
-        super().__init__()
-        self.mode = mode
-        # 判断是否为测试集:
-        if mode == "test":
-            self.data = torch.from_numpy(numpy.load(path, mmap_mode="r").copy()).float()
-            self.targets = None
+    def __init__(self, X, y=None):
+        self.data = torch.from_numpy(X.copy()).float()
+        if y is not None:
+            y = y.astype(numpy.int32)
+            self.label = torch.LongTensor(y)
         else:
-            # 非test数据集
-            target = numpy.load(inputLabel, mmap_mode="r")  # 本两行根据数据特点进行切片
-            data = numpy.load(path, mmap_mode="r")
-            if target.dtype.kind in {"U", "S"}:
-                print("\tWarning: target is string, converting to int64")
-                target = target.astype(numpy.int64)
-            # 不使用 mmap_mode则会将整个数据集加载到内存中，大概率会导致内存不足
+            self.label = None
 
-            # 划分训练集和验证集:
-            num_of_data = data.shape[0]
-            split_index = int(num_of_data * (1 - VALIDATION_RATIO))  # 划分点
-            train_index = []
-            dev_index = []
-            train_index = list(range(0, split_index))
-            dev_index = list(range(split_index, num_of_data))
-
-            # train数据集(放入属性前最后处理):
-            if mode == "train":
-                self.data = torch.from_numpy(data[train_index]).float()
-                self.targets = torch.tensor(target[train_index], dtype=torch.long)
-            # dev数据集:
-            elif mode == "dev":
-                self.data = torch.from_numpy(data[dev_index]).float()
-                self.targets = torch.tensor(target[dev_index], dtype=torch.long)
-            else:
-                print("Error: mode is not train or dev")
-                raise ValueError("mode is not train or dev")
-        if mode == "train" or mode == "dev":
-            print("\n标签范围:", target[train_index].min(), target[train_index].max())
-        self.dim = self.data.shape[1]
-
-    def __getitem__(self, item):
-        if self.mode == "train" or self.mode == "dev":
-            return self.data[item], self.targets[item]
+    def __getitem__(self, idx):
+        if self.label is not None:
+            return self.data[idx], self.label[idx]
         else:
-            return self.data[item]
+            return self.data[idx]
 
     def __len__(self):
         return len(self.data)
@@ -73,8 +37,9 @@ def create_dataloader(
     dataloader = DataLoader(
         dataset,
         batch_size=batch_size,
-        shuffle=False,
+        shuffle=shuffle,
         num_workers=num_workers,
+        pin_memory=True,  # 加速数据加载
         drop_last=False,
     )
     return dataloader
@@ -95,15 +60,6 @@ def create_dev_DataLoader(dataset: Dataset, batch_size: int, num_workers: int):
         num_workers=num_workers,
         drop_last=False,
     )
-
-
-# def csv_fileReader(path: str) -> numpy.ndarray:
-#     with open(path) as file:
-#         csv_list = list(csv.reader(file))
-#         data = numpy.array(csv_list)
-#         data = data[1:, 1:]
-#         data = data.astype(float)
-#         return data
 
 
 """

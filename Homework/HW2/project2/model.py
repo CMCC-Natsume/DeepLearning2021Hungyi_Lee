@@ -1,25 +1,25 @@
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
+from tqdm import tqdm
+import os
 
-MAX_EPOCH = 35
+MAX_EPOCH = 30
+WEIGHT_DECAY = 1e-5
 LEARNING_RATE = 0.0005
-MOMENTUM = 0.9
+
 
 if torch.cuda.is_available():
     device = torch.device("cuda")
 else:
     device = torch.device("cpu")
 
-seed = 42069
-torch.manual_seed(seed)
-
 
 class MyModel(nn.Module):
-    def __init__(self, input_dim: int):
+    def __init__(self):
         super().__init__()
         self.network = nn.Sequential(  # 跑出的结果不如testNetwork
-            nn.Linear(input_dim, 512),
+            nn.Linear(429, 512),
             nn.BatchNorm1d(512),  # 批次归一化层
             nn.ReLU(),
             nn.Dropout(0.25),  # Dropout层，防止过拟合
@@ -29,15 +29,6 @@ class MyModel(nn.Module):
             nn.Dropout(0.25),
             nn.Linear(256, 128),
             nn.ReLU(),
-            nn.Linear(128, 39),  # 39个音素类别
-        )
-        self.test_network = nn.Sequential(
-            nn.Linear(input_dim, 1024),
-            nn.Sigmoid(),
-            nn.Linear(1024, 512),
-            nn.Sigmoid(),
-            nn.Linear(512, 128),
-            nn.Sigmoid(),
             nn.Linear(128, 39),  # 39个音素类别
         )
         self.criterion = nn.CrossEntropyLoss(reduction="mean")
@@ -61,9 +52,11 @@ def model_training(train_data: DataLoader, dev_data: DataLoader, model: MyModel)
     dev_accuracy = 0.0
     min_loss = 100
     epoch = 0
-    my_optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
+    my_optimizer = optim.Adam(
+        model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY
+    )
     scheduler = optim.lr_scheduler.StepLR(
-        my_optimizer, step_size=10, gamma=0.5
+        my_optimizer, step_size=11, gamma=0.5
     )  # 学习率衰减
     while epoch < MAX_EPOCH:
         model.train()
@@ -71,7 +64,7 @@ def model_training(train_data: DataLoader, dev_data: DataLoader, model: MyModel)
         train_accuracy = 0.0
         dev_accuracy = 0.0
         epoch_loss.clear()
-        for data, label in train_data:
+        for data, label in tqdm(train_data):
             # 将数据和标签移动到设备上
             data, label = data.to(device), label.to(device)
             # 正向传播
@@ -100,7 +93,7 @@ def model_training(train_data: DataLoader, dev_data: DataLoader, model: MyModel)
         if val_loss < min_loss:
             min_loss = val_loss
             print(
-                f"\n---NOW! in epoch: {epoch + 1}, the lowest loss(validation) is {val_loss}"
+                f"--NOW!! In epoch: {epoch}, the lowest loss(valid): {val_loss:3.6f} , accuracy:{dev_accuracy:3.6f}"
             )
 
         # 每个epoch结束后，打印当前的损失和准确率
@@ -109,6 +102,8 @@ def model_training(train_data: DataLoader, dev_data: DataLoader, model: MyModel)
         )
 
         epoch += 1
+        if epoch != MAX_EPOCH:
+            print(f"\n\nEpoch :\t{epoch + 1}")
 
     return train_loss, dev_loss
 
@@ -132,16 +127,33 @@ def model_validation(model: MyModel, dev_data: DataLoader):
     return sum(loss) / len(loss), dev_accuracy
 
 
-# def test(model: MyModel, test_data: DataLoader):
-#     """
-#     标记
-#     :param model:
-#     :param test_data:
-#     :return:
-#     """
-#     model.eval()
-#     loss = []
-#     for data, label in test_data:
-#         output = model(data)
-#         loss.append(model.calculate_loss(output, label))
-#     return sum(loss) / len(loss)
+def test(model: MyModel, test_data: DataLoader):
+    model.eval()
+    predictions = []
+    print("Testing the model...")
+
+    with torch.no_grad():
+        for data in tqdm(test_data):
+            data = data.to(device)
+            output = model(data)
+            _, predicted_label = torch.max(output, 1)
+            predictions.extend(predicted_label.cpu().numpy().tolist())
+
+    return predictions
+
+
+def save_predictions_to_csv(predictions: list, filepath: str = "predict.csv"):
+    """
+    Save the predicted results to a CSV file at a specified path.
+    :param predictions: A list of predicted class IDs.
+    :param filepath: Full path (including filename) to save the CSV file.
+    """
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+
+    print(f"Saving predictions to {filepath}...")
+    with open(filepath, "w") as f:
+        f.write("Id,Class\n")
+        for i, pred in enumerate(predictions):
+            f.write(f"{i},{pred}\n")
+    print(f"Predictions saved to {filepath}.")
