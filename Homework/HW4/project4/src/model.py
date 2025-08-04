@@ -1,5 +1,6 @@
 from torch import nn
 import torch
+import torch.nn.functional as F
 
 
 class MyModel(nn.Module):
@@ -53,6 +54,34 @@ class MyModel(nn.Module):
 
     def calculate_loss(self, prediction, label):
         return self.criterion(prediction, label)
+
+
+class AMSoftmaxLoss(nn.Module):
+    def __init__(self, input_dim, num_classes, s=30.0, m=0.35):
+        super(AMSoftmaxLoss, self).__init__()
+        self.s = s  # Scaling factor
+        self.m = m  # Margin
+        self.input_dim = input_dim
+        self.num_classes = num_classes
+        self.weight = nn.Parameter(torch.FloatTensor(num_classes, input_dim))
+        nn.init.xavier_uniform_(self.weight)  # Initialize weights
+
+    def forward(self, x, labels):
+        # Normalize the feature vectors and weights
+        x = F.normalize(x, p=2, dim=1)  # L2 normalize input features
+        weight = F.normalize(self.weight, p=2, dim=1)  # L2 normalize weights
+
+        # Compute cosine similarity: (batch_size, num_classes)
+        cosine = F.linear(x, weight)
+
+        # AM-Softmax: apply margin to the target class
+        one_hot = torch.zeros_like(cosine)
+        one_hot.scatter_(1, labels.view(-1, 1).long(), 1.0)
+        output = self.s * (cosine - one_hot * self.m)
+
+        # Apply softmax and compute cross-entropy loss
+        loss = F.cross_entropy(output, labels)
+        return loss
 
 
 class SelfAttentionPooling(nn.Module):

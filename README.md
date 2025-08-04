@@ -30,7 +30,7 @@
 ---
 ## 🧾食用方法
 
-本项目的具体执行方案很多地方都与示例代码的方案一致，环境构建工具使用的是**uv**。如果你也想和作者一样使用uv作为自己的环境构建工具，可以点击链接参考[官方文档](https://docs.astral.sh/uv/reference/environment/)，或进入其[github仓库](https://github.com/astral-sh/uv)参考用法。
+本项目的具体执行方案很多地方都与示例代码的方案一致，环境构建工具使用的是`uv`。如果你也想和作者一样使用uv作为自己的环境构建工具，可以点击链接参考[官方文档](https://docs.astral.sh/uv/reference/environment/)，或进入其[github仓库](https://github.com/astral-sh/uv)参考用法。
 
 ---
 
