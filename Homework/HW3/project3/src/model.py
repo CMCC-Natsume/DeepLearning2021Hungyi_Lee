@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 # 训练参数表：
-MAX_EPOCH = 240
+MAX_EPOCH = 200
 BATCH_SIZE = 32
 SEMI_EPOCH = 109
 LEARNING_RATE = 0.0006
@@ -182,7 +182,7 @@ def model_training(
             torch.save(model.state_dict(), best_model_path)
             print(
                 colored(
-                    f"--NOW!! In epoch: {epoch}, the lowest loss(valid): loss{val_loss:3.6f} , accuracy:{dev_accuracy:3.6f}",
+                    f"--NOW!! In epoch: {epoch}, the lowest loss(valid):{val_loss:3.6f} , accuracy:{dev_accuracy:3.6f}",
                     "yellow",
                 )
             )

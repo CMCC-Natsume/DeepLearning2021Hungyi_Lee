@@ -1,8 +1,44 @@
+import os
 import matplotlib
+import numpy
+import seaborn as sns
 import torch
 from matplotlib import pyplot as plt
+from sklearn.metrics import confusion_matrix
 
 matplotlib.use("Agg")  # 强制使用非交互式后端(WSL中使用时需要添加本行)
+save_path = "Homework/HW3/project3/savedGraph/"
+
+
+def plot_confusion_matrix(
+    true_labels,
+    pred_labels,
+    title="ConfusionMatrix",
+    my_path=save_path + "confusion_matrix",
+):
+    cm = confusion_matrix(y_true=true_labels, y_pred=pred_labels)
+    vmin = 0
+    vmax = numpy.percentile(cm, 99)
+
+    plt.figure(figsize=(12, 10), dpi=300)
+    font_size = max(4, 300 // cm.shape[0]) - 2
+    sns.heatmap(
+        cm,
+        annot=True,
+        fmt="d",
+        cbar=True,
+        vmin=vmin,
+        vmax=vmax,
+        annot_kws={"size": font_size},
+    )
+
+    plt.xlabel("predict label", fontsize=font_size)
+    plt.ylabel("real label", fontsize=font_size)
+    plt.title(title, fontsize=14)
+
+    os.makedirs(os.path.dirname(my_path), exist_ok=True)
+    plt.savefig(my_path, bbox_inches="tight", dpi=300)
+    plt.close()
 
 
 def plot_learning_curve(train_loss, dev_loss, title=""):

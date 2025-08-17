@@ -77,6 +77,25 @@ print(f"\nTotal training time: {hours:02d}:{minutes:02d}:{seconds:02d}\n\n")
 
 # 5.训练结束，结果绘制：
 graphMaking.plot_learning_curve(train_loss, dev_loss, "ModelOfTIMIT11")
+# test在验证集上获取预测和真实标签
+print("Generating confusion matrix...")
+my_model.eval()
+true_labels = []
+pred_labels = []
+with torch.no_grad():
+    for data, label in dev_dataloader:
+        data, label = data.to(device), label.to(device)
+        output = my_model(data)
+        _, predicted = torch.max(output, 1)
+        true_labels.extend(label.cpu().numpy().tolist())
+        pred_labels.extend(predicted.cpu().numpy().tolist())
+# 绘制并保存混淆矩阵
+graphMaking.plot_confusion_matrix(
+    true_labels,
+    pred_labels,
+    save_path="Homework/HW2/project2/savedGraph/confusion_matrix.png",
+)
+print("Confusion matrix saved!")
 
 
 # 06 测试集结果

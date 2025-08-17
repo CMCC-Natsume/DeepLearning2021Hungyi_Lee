@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import os
 
-MAX_EPOCH = 30
+MAX_EPOCH = 20
 WEIGHT_DECAY = 1e-5
 LEARNING_RATE = 0.0005
 
@@ -18,15 +18,15 @@ else:
 class MyModel(nn.Module):
     def __init__(self):
         super().__init__()
-        self.network = nn.Sequential(  # 跑出的结果不如testNetwork
+        self.network = nn.Sequential(
             nn.Linear(429, 512),
             nn.BatchNorm1d(512),  # 批次归一化层
             nn.ReLU(),
-            nn.Dropout(0.25),  # Dropout层，防止过拟合
+            # nn.Dropout(0.15),  # Dropout层，防止过拟合
             nn.Linear(512, 256),
             nn.BatchNorm1d(256),
             nn.ReLU(),
-            nn.Dropout(0.25),
+            # nn.Dropout(0.15),
             nn.Linear(256, 128),
             nn.ReLU(),
             nn.Linear(128, 39),  # 39个音素类别

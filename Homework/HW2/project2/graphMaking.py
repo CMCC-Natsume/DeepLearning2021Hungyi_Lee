@@ -1,8 +1,54 @@
 import matplotlib
 import torch
 from matplotlib import pyplot as plt
+import seaborn as sns
+import os
+import numpy as np
+from sklearn.metrics import confusion_matrix
 
 matplotlib.use("Agg")  # 强制使用非交互式后端(WSL中使用时需要添加本行)
+
+# 设置中文显示
+# plt.rcParams["font.sans-serif"] = ["SimHei"]  # 使用黑体
+plt.rcParams["axes.unicode_minus"] = False
+
+
+def plot_confusion_matrix(
+    true_labels,
+    pred_labels,
+    title="Confusion Matrix",
+    save_path="Homework/HW2/project2/savedGraph/confusion_matrix.png",
+):
+    # 计算混淆矩阵
+    cm = confusion_matrix(true_labels, pred_labels)
+
+    # 动态设置颜色范围（基于数据最大值）
+    vmin = 0
+    vmax = np.percentile(cm, 98)  # 避免 vmax 为 0
+
+    # 设置绘图风格
+    plt.figure(figsize=(12, 10), dpi=300)  # 增加分辨率
+    font_size = max(4, 300 // cm.shape[0]) - 2
+    sns.heatmap(
+        cm,
+        annot=True,
+        fmt="d",
+        cmap="viridis",
+        cbar=True,
+        vmin=vmin,
+        vmax=vmax,
+        annot_kws={"size": font_size},
+    )
+
+    # 设置英文标签
+    plt.xlabel("Predict labels", fontsize=12)
+    plt.ylabel("Real labels", fontsize=12)
+    plt.title(title, fontsize=14)
+
+    # 保存图像
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    plt.savefig(save_path, bbox_inches="tight", dpi=300)  # 提高保存分辨率
+    plt.close()
 
 
 def plot_learning_curve(train_loss, dev_loss, title=""):
