@@ -1,4 +1,4 @@
-<h1 align="center">李宏毅机器学习2021课程课件/作业分享（更新中）</h1>
+<h1 align="center">李宏毅机器学习2021课程课件/作业分享（暂停更新）</h1>
 
 ---
 
@@ -13,6 +13,8 @@
 <br>
 
 #### 以下为课程作业与主题的对应关系
+
+>目前只做了前四个HW
 
 | | Topic | | Topic |
 |---|---|---|---|
@@ -85,9 +87,9 @@ DL2021
 │   ├── DL_Classification
 │   ├── GAN
 │   ├── Introduction
-│   ├── LeeDL_Tutorial_v.1.2.3.pdf
 │   ├── Normalization&Seq2Seq
-│   └── PAC_Learning
+│   ├── PAC_Learning
+│   └── ……
 │
 └── 杂记
 ```
